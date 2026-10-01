@@ -347,6 +347,33 @@
     width: 100%; height: auto; display: block; border-radius: 18px;
     box-shadow: 0 10px 34px rgba(0,0,0,0.55);
   }
+
+  /* ---- 角色：没数 ---- */
+  .h-row { display: flex; align-items: center; gap: 10px; }
+  .h-cat svg { display: block; }
+  .cat svg { display: block; }
+  .cat-line {
+    display: flex; align-items: center; gap: 12px;
+    margin-top: 16px; padding-top: 14px;
+    border-top: 0.5px solid var(--border);
+  }
+  .cat-say {
+    flex: 1; font-size: 14px; line-height: 1.45; letter-spacing: -0.01em;
+    color: var(--text); position: relative;
+  }
+  .cat-say::before {
+    content: ''; position: absolute; left: -7px; top: 12px;
+    width: 10px; height: 10px; background: var(--fill-2);
+    transform: rotate(45deg); border-radius: 2px;
+  }
+  .cat-say span {
+    display: inline-block; background: var(--fill-2);
+    padding: 8px 12px; border-radius: 12px;
+  }
+  .cat-say .paw { opacity: .45; margin-left: 2px; }
+  /* 识别中：猫探头看盘子 */
+  .cat-peek { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .cat-peek .cat-say { font-size: 13px; color: var(--text-2); }
   .badge.none { background: var(--fill-2); color: var(--text-2); }
 
   .config-area .toggle {
@@ -371,7 +398,10 @@
 <body>
 
 <header>
-  <h1>没吃多少</h1>
+  <div class="h-row">
+    <h1>没吃多少</h1>
+    <span class="h-cat" id="hCat"></span>
+  </div>
   <div class="h-sub" id="dateSub"></div>
 </header>
 
@@ -418,11 +448,19 @@
         <input type="number" id="highInput" value="110" min="100" max="150" inputmode="numeric">
         <span class="sep">%</span>
       </div>
+      <div class="cat-line">
+        <span class="cat" id="ringCat"></span>
+        <span class="cat-say"><span id="catSay"></span></span>
+      </div>
     </div>
 
     <div class="card">
       <img id="preview" alt="预览">
       <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
+      <div class="cat-peek" id="catPeek" hidden>
+        <span class="cat" id="peekCat"></span>
+        <span class="cat-say"><span id="peekSay">看起来不太清白…</span></span>
+      </div>
       <button class="btn btn-primary" id="photoBtn">📷 拍照识别</button>
       <div class="status" id="status"></div>
       <button class="btn btn-ghost" id="cardBtn" style="margin-top:12px;">🖼 生成今日卡片</button>
@@ -696,6 +734,8 @@ const el = {
   sheetKcal: $('sheetKcal'), sheetBadge: $('sheetBadge'), sheetBody: $('sheetBody'),
   cardBtn: $('cardBtn'), cardMask: $('cardMask'), cardSheet: $('cardSheet'),
   cardCanvas: $('cardCanvas'), cardSaveBtn: $('cardSaveBtn'), cardShareBtn: $('cardShareBtn'),
+  hCat: $('hCat'), ringCat: $('ringCat'), catSay: $('catSay'),
+  catPeek: $('catPeek'), peekCat: $('peekCat'), peekSay: $('peekSay'),
 };
 
 const R = 51;
@@ -763,9 +803,8 @@ function renderToday() {
   const pct = Math.min(intake / goal, 1);
 
   el.ringProgress.style.strokeDashoffset = CIRC * (1 - pct);
-  el.ringProgress.style.stroke =
-    intake > goal * range.high / 100 ? 'var(--red)' :
-    isGood(intake) ? 'var(--green)' : 'var(--accent)';
+  // 和分享卡片用同一条六色梯度：蓝 → 青 → 绿 → 黄 → 橙 → 红
+  el.ringProgress.style.stroke = cardStateFor(intake, goal, range, todayKey()).ringColor;
   el.ringNum.textContent = Math.round(intake);
 
   el.goalDisplay.textContent = goal;
@@ -792,6 +831,8 @@ function renderToday() {
       });
     });
   }
+
+  renderCat();
 }
 
 /* ==================== 周视图 ==================== */
@@ -1161,10 +1202,19 @@ function findFood(name) {
 
 el.photoBtn.addEventListener('click', () => el.fileInput.click());
 
+// 识别时让猫探头看一眼盘子
+function showCatPeek(expr, say) {
+  el.peekCat.innerHTML = catSVG(expr, 44);
+  el.peekSay.textContent = say;
+  el.catPeek.hidden = false;
+}
+function hideCatPeek() { el.catPeek.hidden = true; }
+
 el.fileInput.addEventListener('change', async e => {
   const file = e.target.files?.[0];
   if (!file) return;
   setStatus('压缩图片…');
+  showCatPeek('smug', '看起来不太清白…');
   el.photoBtn.disabled = true;
 
   try {
@@ -1173,6 +1223,7 @@ el.fileInput.addEventListener('change', async e => {
     el.preview.style.display = 'block';
 
     setStatus('AI 识别中…');
+    showCatPeek('guilty', '让我仔细看看…');
     const reply = await recognizeImage(base64);
     setStatus(`识别到：${reply}`);
 
@@ -1200,11 +1251,16 @@ el.fileInput.addEventListener('change', async e => {
     }
     saveTodayRecords(records);
     renderToday();
+    const st = currentCatState();
+    showCatPeek(st.expr, st.line);
     setStatus(added ? `已记录 ${added} 项` : '未识别到食物，换张更清楚的图试试');
     setTimeout(() => { el.preview.style.display = 'none'; }, 2500);
+    setTimeout(hideCatPeek, 4200);
   } catch (err) {
     console.error(err);
+    showCatPeek('sad', '这个…我没看清');
     setStatus('出错：' + err.message, true);
+    setTimeout(hideCatPeek, 4200);
   } finally {
     el.photoBtn.disabled = false;
     el.fileInput.value = '';
@@ -1275,6 +1331,160 @@ el.saveConfigBtn.addEventListener('click', () => {
   setStatusTemporary('配置已保存', 1500);
 });
 
+/* ==================== 角色：没数 ==================== */
+// 一只对自己的食量毫无正确认知的橘猫。全部内联 SVG 手绘、6 个表情参数化，
+// 这样在「单文件零依赖」的前提下还能无限放大不糊，并且能跟着主题色联动。
+const CAT_NAME = '没数';
+const CAT = {
+  orange: '#E9A15C', stripe: '#D2843F', cream: '#F8E9D6',
+  pink:   '#F0B49E', blush:  '#F2A18C', dark:  '#4A342A',
+  white:  '#FFFFFF', tear:   '#7FC8F8',
+};
+
+// 表情：smug 得意 / content 满足 / guilty 心虚 / hesitant 犹豫 / sad 委屈 / sleepy 睡眼 / shock 震惊
+function catFace(expr) {
+  const C = CAT;
+  const eyeL = 47, eyeR = 73, eyeY = 50;
+
+  const halfLidded = (cx) => `<path d="M${cx - 6} ${eyeY} A6 6 0 0 0 ${cx + 6} ${eyeY} Z" fill="${C.dark}"/>`;
+  const roundEye = (cx, r = 4.6) =>
+    `<circle cx="${cx}" cy="${eyeY}" r="${r}" fill="${C.dark}"/>` +
+    `<circle cx="${cx + 1.6}" cy="${eyeY - 1.8}" r="${(r * 0.42).toFixed(2)}" fill="${C.white}"/>`;
+  const happyEye = (cx) => `<path d="M${cx - 6} ${eyeY + 1} q6 -7 12 0" fill="none" stroke="${C.dark}" stroke-width="2.6" stroke-linecap="round"/>`;
+  const sleepyEye = (cx) => `<path d="M${cx - 6} ${eyeY - 1} q6 5 12 0" fill="none" stroke="${C.dark}" stroke-width="2.6" stroke-linecap="round"/>`;
+
+  switch (expr) {
+    case 'smug':    // 得意：半眯眼 + 斜嘴
+      return {
+        eyes: halfLidded(eyeL) + halfLidded(eyeR),
+        mouth: `<path d="M55 67 q5 4 10 -1" fill="none" stroke="${C.dark}" stroke-width="2.4" stroke-linecap="round"/>`,
+        extra: '',
+      };
+    case 'content': // 满足：弯弯笑眼
+      return {
+        eyes: happyEye(eyeL) + happyEye(eyeR),
+        mouth: `<path d="M55 66 q5 5 10 0" fill="none" stroke="${C.dark}" stroke-width="2.4" stroke-linecap="round"/>`,
+        extra: '',
+      };
+    case 'guilty':  // 心虚：眼珠飘走 + 冷汗 + 波浪嘴
+      return {
+        eyes: `<circle cx="${eyeL - 2}" cy="${eyeY + 1}" r="4.4" fill="${C.dark}"/>` +
+              `<circle cx="${eyeR - 2}" cy="${eyeY + 1}" r="4.4" fill="${C.dark}"/>` +
+              `<circle cx="${eyeL - 0.6}" cy="${eyeY - 0.6}" r="1.7" fill="${C.white}"/>` +
+              `<circle cx="${eyeR - 0.6}" cy="${eyeY - 0.6}" r="1.7" fill="${C.white}"/>`,
+        mouth: `<path d="M53 67 q3 -3 6 0 q3 3 6 0" fill="none" stroke="${C.dark}" stroke-width="2.2" stroke-linecap="round"/>`,
+        extra: `<path d="M92 32 q5 7 0 10 q-5 -3 0 -10 z" fill="${C.tear}" opacity=".9"/>`,
+      };
+    case 'hesitant': // 犹豫：一只半眯一只瞪圆 + 张嘴
+      return {
+        eyes: halfLidded(eyeL) + roundEye(eyeR, 5),
+        mouth: `<ellipse cx="60" cy="68" rx="4" ry="5" fill="${C.dark}"/>`,
+        extra: '',
+      };
+    case 'sad':     // 委屈：水汪汪大眼 + 下撇嘴
+      return {
+        eyes: roundEye(eyeL, 5.6) + roundEye(eyeR, 5.6),
+        mouth: `<path d="M54 69 q6 -5 12 0" fill="none" stroke="${C.dark}" stroke-width="2.4" stroke-linecap="round"/>`,
+        extra: `<path d="M37 60 q-3 5 0 7 q3 -2 0 -7 z" fill="${C.tear}"/>` +
+               `<path d="M83 60 q3 5 0 7 q-3 -2 0 -7 z" fill="${C.tear}"/>`,
+      };
+    case 'sleepy':  // 睡眼：闭眼 + 口水 + Zzz
+      return {
+        eyes: sleepyEye(eyeL) + sleepyEye(eyeR),
+        mouth: `<path d="M56 67 q4 3 8 0" fill="none" stroke="${C.dark}" stroke-width="2.2" stroke-linecap="round"/>`,
+        extra: `<path d="M66 72 q2 6 -1 8 q-3 -3 1 -8 z" fill="${C.tear}" opacity=".8"/>` +
+               `<text x="94" y="32" font-size="14" font-weight="700" fill="${C.dark}" opacity=".45" font-family="sans-serif">z</text>` +
+               `<text x="104" y="20" font-size="10" font-weight="700" fill="${C.dark}" opacity=".3" font-family="sans-serif">z</text>`,
+      };
+    default:        // shock 震惊：瞳孔缩小 + 张嘴 + 竖汗
+      return {
+        eyes: `<circle cx="${eyeL}" cy="${eyeY}" r="6" fill="${C.white}"/>` +
+              `<circle cx="${eyeL}" cy="${eyeY}" r="2.4" fill="${C.dark}"/>` +
+              `<circle cx="${eyeR}" cy="${eyeY}" r="6" fill="${C.white}"/>` +
+              `<circle cx="${eyeR}" cy="${eyeY}" r="2.4" fill="${C.dark}"/>`,
+        mouth: `<ellipse cx="60" cy="69" rx="5" ry="6.5" fill="${C.dark}"/>`,
+        extra: `<path d="M95 26 q4 6 0 9 q-4 -3 0 -9 z" fill="${C.tear}"/>`,
+      };
+  }
+}
+
+function catSVG(expr = 'smug', size = 96) {
+  const C = CAT;
+  const f = catFace(expr);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 124" width="${size}" height="${size}" role="img" aria-label="${CAT_NAME}（橘猫）">
+  <path d="M88 108 C104 106 114 92 112 78 C110 66 104 58 100 58 C102 66 104 78 98 88 C94 96 86 102 78 100 Z" fill="${C.orange}"/>
+  <path d="M104 70 q-5 3 -6 8" fill="none" stroke="${C.stripe}" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+  <path d="M60 112 c-23 0 -33 -12 -33 -27 c0 -17 13 -27 33 -27 c20 0 33 10 33 27 c0 15 -10 27 -33 27 z" fill="${C.orange}"/>
+  <ellipse cx="60" cy="95" rx="17" ry="15" fill="${C.cream}"/>
+  <path d="M46 74 h-8 M47 83 h-9" stroke="${C.stripe}" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M74 74 h8 M73 83 h9" stroke="${C.stripe}" stroke-width="3.2" stroke-linecap="round"/>
+  <ellipse cx="45" cy="107" rx="9.5" ry="6" fill="${C.cream}"/>
+  <ellipse cx="75" cy="107" rx="9.5" ry="6" fill="${C.cream}"/>
+  <path d="M31 44 L25 17 L50 32 Z" fill="${C.orange}"/>
+  <path d="M89 44 L95 17 L70 32 Z" fill="${C.orange}"/>
+  <path d="M35 41 L32 26 L45 34 Z" fill="${C.pink}"/>
+  <path d="M85 41 L88 26 L75 34 Z" fill="${C.pink}"/>
+  <ellipse cx="60" cy="52" rx="35" ry="31" fill="${C.orange}"/>
+  <path d="M52 38 v-9 M60 36 v-11 M68 38 v-9" stroke="${C.stripe}" stroke-width="3.4" stroke-linecap="round"/>
+  <ellipse cx="60" cy="63" rx="18" ry="12.5" fill="${C.cream}"/>
+  <ellipse cx="35" cy="61" rx="6" ry="4" fill="${C.blush}" opacity=".5"/>
+  <ellipse cx="85" cy="61" rx="6" ry="4" fill="${C.blush}" opacity=".5"/>
+  <path d="M56 57 h8 l-4 4 z" fill="${C.dark}"/>
+  ${f.eyes}
+  ${f.mouth}
+  ${f.extra}
+</svg>`;
+}
+
+// 状态 → 表情：低摄入得意 / 接近目标心虚 / 超标犹豫 / 隐藏档震惊
+function catExprFor(kind) {
+  if (kind === 'hidden') return 'shock';
+  if (kind === 'over') return 'hesitant';
+  if (kind === 'good') return 'guilty';
+  const i = Number(String(kind).replace('stage', '')) || 0;
+  if (i <= 2) return 'smug';
+  if (i <= 4) return 'content';
+  if (i <= 6) return 'guilty';
+  return 'hesitant';
+}
+
+// Canvas 上画猫：把 SVG 变成 Image。data URI 不联网，仍然是零依赖。
+const CAT_EXPRS = ['smug', 'content', 'guilty', 'hesitant', 'sad', 'sleepy', 'shock'];
+const catImgCache = {};
+function catImage(expr) {
+  if (!catImgCache[expr]) {
+    const img = new Image();
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(catSVG(expr, 240));
+    catImgCache[expr] = img;
+  }
+  return catImgCache[expr];
+}
+// 一次性预载全部表情，避免导出卡片时猫还没解码出来（那样卡片会缺一块）
+function preloadCatImages() {
+  return Promise.all(CAT_EXPRS.map(expr => new Promise(res => {
+    const img = catImage(expr);
+    if (img.complete && img.naturalWidth) return res();
+    img.onload = () => res();
+    img.onerror = () => res();
+    setTimeout(res, 1500);
+  })));
+}
+
+// 当前该说哪句话 + 该是什么表情
+function currentCatState() {
+  const intake = records.reduce((s, r) => s + (r.kcal || 0), 0);
+  const st = cardStateFor(intake, goal, range, todayKey());
+  return { kind: st.kind, expr: catExprFor(st.kind),
+           line: st.segments.map(s => s[0]).join(''), color: st.segments[0][1] };
+}
+
+function renderCat() {
+  const { expr, line, color } = currentCatState();
+  el.ringCat.innerHTML = catSVG(expr, 58);
+  el.catSay.textContent = line;
+  el.catSay.style.color = color;
+}
+
 /* ==================== 分享卡片 ==================== */
 const CARD_W = 1080, CARD_H = 1440;
 const CARD_FONT = '"PingFang SC","Microsoft YaHei",-apple-system,"SF Pro Text",sans-serif';
@@ -1324,9 +1534,9 @@ function stepColor(p) {
 // 文案阶梯：档距 = 目标 / 9，默认目标 1800 时正好每档 200 卡。
 // 文案里不写具体数字，"一半了"这类说法在任何目标下都成立。
 const LADDER_LINES = [
-  ['今天还一口没动', '胃：今天暂未营业', '战绩 0，非常完美', '开局良好，别急着夸'],
+  ['今天还一口没动', '胃：今天暂未营业', '战绩 0，非常完美', '开局良好，别急着夸', '还很宽裕～'],
   ['开张了，还算克制', '刚热身，不慌', '一顿早饭，小场面', '这点量，还不够我热身'],
-  ['稳住了，问题不大', '一切尽在掌握（大概）', '刚够塞牙缝，继续', '目前体面还在'],
+  ['稳住了，问题不大', '一切尽在掌握（大概）', '刚够塞牙缝，继续', '目前体面还在', '还很宽裕～'],
   ['一切正常，继续保持', '这个进度，我自己都感动', '今天的我很有分寸', '稳步推进，毫无破绽'],
   ['到这儿都还说得过去', '还没失控，先表扬一下自己', '目前状态：假装很自律', '撑到现在，全靠演技'],
   ['一半了……开始有点心动', '我的意志力开始打折', '一半进度，一半心虚', '嘴上说够了，心里想下顿'],
@@ -1336,17 +1546,17 @@ const LADDER_LINES = [
 ];
 const GOOD_LINES = [
   '今天真的没吃多少', '今日份自律，已到账', '这个数字，值得发个朋友圈',
-  '我居然做到了，记录一下', '今天的我，配得上一句夸奖',
+  '我居然做到了，记录一下', '今天的我，配得上一句夸奖', '好像…有点多了…',
 ];
 const OVER_LINES = [
   '没吃多少，就是有点多', '数字很诚实，我不太想面对', '今天的账，明天再算',
-  '不怪食物，怪我嘴', '差一点点就完美了，差得有点多',
+  '不怪食物，怪我嘴', '差一点点就完美了，差得有点多', '就…这一口…',
 ];
 // 隐藏档：≥3000 卡，且至少超过目标 50%（免得高目标用户被误伤）
 const HIDDEN_LINES = [
   '这不是超标，这是行为艺术', '这个数字，建议直接报警',
   '今日成就：把一天的额度吃成了两天', '别慌，明天开始（第 108 次）',
-  '解锁隐藏结局：自助餐の终章',
+  '解锁隐藏结局：自助餐の终章', '这个数字…建议直接报警…',
 ];
 
 // 用日期做种子：同一天永远同一条（重开卡片不跳），隔天才换
@@ -1525,6 +1735,13 @@ function drawShareCard(canvas, d) {
     ctx.fillText(`… 还有 ${d.meals.length - MAX_ROWS} 项`, P + 64, listTop + 62 + MAX_ROWS * 56);
   }
 
+  // 角色：右上角蹲着，表情跟着当天状态走
+  const catImg = catImage(catExprFor(st.kind));
+  if (catImg.complete && catImg.naturalWidth) {
+    const cw = 210, chh = cw * (124 / 120);
+    ctx.drawImage(catImg, W - P - 74 - cw, P + 22, cw, chh);
+  }
+
   // 底部地址
   ctx.textAlign = 'center';
   ctx.fillStyle = C.text3;
@@ -1550,9 +1767,12 @@ function openCardSheet() {
     setStatus('先记一笔，再来生成卡片', true);
     return;
   }
-  drawShareCard(el.cardCanvas, buildCardData());
-  el.cardMask.classList.add('show');
-  el.cardSheet.classList.add('show');
+  // 等猫解码完再画，否则导出的卡片右上角会缺一块
+  preloadCatImages().then(() => {
+    drawShareCard(el.cardCanvas, buildCardData());
+    el.cardMask.classList.add('show');
+    el.cardSheet.classList.add('show');
+  });
 }
 
 function closeCardSheet() {
@@ -1606,7 +1826,10 @@ el.cardShareBtn.addEventListener('click', shareCardImage);
   const d = new Date();
   const wd = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
   el.dateSub.textContent = `${d.getMonth()+1}月${d.getDate()}日 · ${wd}`;
+  // 标题旁的猫：固定得意脸，代表"它觉得自己没吃多少"
+  el.hCat.innerHTML = catSVG('smug', 46);
   renderToday();
+  preloadCatImages();
 })();
 </script>
 </body>
