@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<title>就一口 · 表情包</title>
+<title>就一口 · 表情包 24 张</title>
 <style>
   :root { --line: rgba(255,255,255,.10); --t2: rgba(235,235,245,.60); --t3: rgba(235,235,245,.34); }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -33,19 +33,18 @@
     backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%);
   }
   .hint b { color:#fff; font-weight:600; }
-  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
   figure {
-    background:rgba(28,28,30,.66); border:.5px solid var(--line); border-radius:20px;
-    padding:10px; margin:0; backdrop-filter:blur(30px) saturate(180%);
+    background:rgba(28,28,30,.66); border:.5px solid var(--line); border-radius:16px;
+    padding:6px; margin:0; backdrop-filter:blur(30px) saturate(180%);
     -webkit-backdrop-filter:blur(30px) saturate(180%);
   }
-  figure img { width:100%; height:auto; display:block; border-radius:14px; }
-  figcaption { font-size:12px; color:var(--t2); padding:8px 2px 2px; text-align:center; }
+  figure img { width:100%; height:auto; display:block; border-radius:11px; }
+  figcaption { font-size:10px; color:var(--t2); padding:5px 1px 1px; text-align:center; line-height:1.3; }
   .sec { font-size:13px; font-weight:600; color:var(--t2); letter-spacing:.06em;
          text-transform:uppercase; margin:30px 2px 12px; }
   .banner { width:100%; height:auto; border-radius:18px; display:block;
             border:.5px solid var(--line); }
-  .wide { grid-template-columns:1fr; }
   footer { font-size:12px; color:var(--t3); margin-top:30px; line-height:1.7; }
   a { color:#0a84ff; text-decoration:none; }
 </style>
@@ -53,25 +52,44 @@
 <body>
 <header>
   <h1>就一口</h1>
-  <div class="sub">没吃多少 · 表情包 · 一套 8 张</div>
+  <div class="sub">没吃多少 · 表情包 · 一套 24 张</div>
 </header>
-
 <main>
   <div class="hint">
     <b>手机上长按任意一张，选「保存图片」</b>即可存进相册。<br>
-    电脑上右键另存为。整套打包在 <a href="https://github.com/iorlchotae/not-that-much">GitHub 仓库</a> 的 <code>stickers/</code> 里。
+    整套打包在 <a href="https://github.com/iorlchotae/not-that-much">GitHub 仓库</a> 的 <code>stickers/</code>（含 240×240 无文字版）。
   </div>
 
-  <div class="sec">表情 01–08</div>
-  <div class="grid" id="grid"></div>
+  <div class="sec">表情 01–24</div>
+  <div class="grid">
+    <figure><img src="caption/01.png" alt="得意：还很宽裕～" loading="lazy"><figcaption>01 得意 · 还很宽裕～</figcaption></figure>
+    <figure><img src="caption/02.png" alt="心虚：额度见底" loading="lazy"><figcaption>02 心虚 · 额度见底</figcaption></figure>
+    <figure><img src="caption/03.png" alt="满足：一切正常" loading="lazy"><figcaption>03 满足 · 一切正常</figcaption></figure>
+    <figure><img src="caption/04.png" alt="震惊：建议直接报警" loading="lazy"><figcaption>04 震惊 · 建议直接报警</figcaption></figure>
+    <figure><img src="caption/05.png" alt="馋：就一口" loading="lazy"><figcaption>05 馋 · 就一口</figcaption></figure>
+    <figure><img src="caption/06.png" alt="睡觉：今天还一口没动" loading="lazy"><figcaption>06 睡觉 · 今天还一口没动</figcaption></figure>
+    <figure><img src="caption/07.png" alt="刷手机：先记一下再说" loading="lazy"><figcaption>07 刷手机 · 先记一下再说</figcaption></figure>
+    <figure><img src="caption/08.png" alt="大口吃：补充能量而已" loading="lazy"><figcaption>08 大口吃 · 补充能量而已</figcaption></figure>
+    <figure><img src="caption/09.png" alt="偷看：我就瞄一眼" loading="lazy"><figcaption>09 偷看 · 我就瞄一眼</figcaption></figure>
+    <figure><img src="caption/10.png" alt="吃饱了：真的饱了（并没有）" loading="lazy"><figcaption>10 吃饱了 · 真的饱了（并没有）</figcaption></figure>
+    <figure><img src="caption/11.png" alt="超标了：今天到此为止" loading="lazy"><figcaption>11 超标了 · 今天到此为止</figcaption></figure>
+    <figure><img src="caption/12.png" alt="算了吧：明天一定" loading="lazy"><figcaption>12 算了吧 · 明天一定</figcaption></figure>
+    <figure><img src="caption/13.png" alt="喝饮料：这个不算热量吧" loading="lazy"><figcaption>13 喝饮料 · 这个不算热量吧</figcaption></figure>
+    <figure><img src="caption/14.png" alt="再来一口：最后一口" loading="lazy"><figcaption>14 再来一口 · 最后一口</figcaption></figure>
+    <figure><img src="caption/15.png" alt="清盘：不能浪费" loading="lazy"><figcaption>15 清盘 · 不能浪费</figcaption></figure>
+    <figure><img src="caption/16.png" alt="自我安慰：没吃多少" loading="lazy"><figcaption>16 自我安慰 · 没吃多少</figcaption></figure>
+    <figure><img src="caption/17.png" alt="生气：谁动了我的额度" loading="lazy"><figcaption>17 生气 · 谁动了我的额度</figcaption></figure>
+    <figure><img src="caption/18.png" alt="委屈：我真的没吃多少" loading="lazy"><figcaption>18 委屈 · 我真的没吃多少</figcaption></figure>
+    <figure><img src="caption/19.png" alt="打滚：吃撑了，动不了" loading="lazy"><figcaption>19 打滚 · 吃撑了，动不了</figcaption></figure>
+    <figure><img src="caption/20.png" alt="享受：这一口值了" loading="lazy"><figcaption>20 享受 · 这一口值了</figcaption></figure>
+    <figure><img src="caption/21.png" alt="盯着：盯久了就不饿了" loading="lazy"><figcaption>21 盯着 · 盯久了就不饿了</figcaption></figure>
+    <figure><img src="caption/22.png" alt="装酷：减肥这事我很在行" loading="lazy"><figcaption>22 装酷 · 减肥这事我很在行</figcaption></figure>
+    <figure><img src="caption/23.png" alt="好吧…：那就明天再减" loading="lazy"><figcaption>23 好吧… · 那就明天再减</figcaption></figure>
+    <figure><img src="caption/24.png" alt="生活很美好：吃饱了才有力气减" loading="lazy"><figcaption>24 生活很美好 · 吃饱了才有力气减</figcaption></figure>
+  </div>
 
   <div class="sec">横版图</div>
-  <div class="grid wide">
-    <figure>
-      <img src="banner@2x.png" alt="吃得再多 也要装作没吃多少">
-      <figcaption>吃得再多，也要装作没吃多少</figcaption>
-    </figure>
-  </div>
+  <img class="banner" src="banner@2x.png" alt="吃得再多 也要装作没吃多少">
 
   <footer>
     角色「就一口」——一只对自己的食量毫无正确认知的橘猫。<br>
@@ -79,15 +97,5 @@
     App 在 <a href="../">这里</a>。
   </footer>
 </main>
-
-<script>
-  const CAP = ['还很宽裕～','一切正常','就一口','额度见底','今日份自律','不怪食物，怪我嘴','建议直接报警','今天还一口没动'];
-  const ZH  = ['得意','满足','馋','心虚','害羞','委屈','震惊','睡觉'];
-  document.getElementById('grid').innerHTML = CAP.map((c, i) => {
-    const n = String(i + 1).padStart(2, '0');
-    return `<figure><img src="caption/${n}.png" alt="${ZH[i]}：${c}" loading="lazy">
-            <figcaption>${n} ${ZH[i]} · ${c}</figcaption></figure>`;
-  }).join('');
-</script>
 </body>
 </html>
