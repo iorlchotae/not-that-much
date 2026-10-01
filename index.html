@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-<title>热量记录</title>
+<title>没吃多少</title>
 <style>
   :root {
     --accent: #0a84ff;
@@ -341,6 +341,12 @@
   .badge.good { background: rgba(48,209,88,0.18); color: var(--green); }
   .badge.over { background: rgba(255,69,58,0.18); color: var(--red); }
   .badge.low  { background: rgba(10,132,255,0.18); color: var(--accent); }
+  /* 分享卡片预览：canvas 逻辑尺寸 1080x1440，靠 CSS 缩到手机宽度 */
+  .card-preview { margin: 4px 0 18px; }
+  .card-preview canvas {
+    width: 100%; height: auto; display: block; border-radius: 18px;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.55);
+  }
   .badge.none { background: var(--fill-2); color: var(--text-2); }
 
   .config-area .toggle {
@@ -365,7 +371,7 @@
 <body>
 
 <header>
-  <h1>热量</h1>
+  <h1>没吃多少</h1>
   <div class="h-sub" id="dateSub"></div>
 </header>
 
@@ -419,6 +425,7 @@
       <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
       <button class="btn btn-primary" id="photoBtn">📷 拍照识别</button>
       <div class="status" id="status"></div>
+      <button class="btn btn-ghost" id="cardBtn" style="margin-top:12px;">🖼 生成今日卡片</button>
     </div>
 
     <div class="card">
@@ -538,6 +545,16 @@
     <span class="badge" id="sheetBadge"></span>
   </div>
   <div id="sheetBody"></div>
+</div>
+
+<div class="sheet-mask" id="cardMask"></div>
+<div class="sheet" id="cardSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">今日卡片</div>
+  <div class="sheet-sub">发给朋友看看，你今天真的没吃多少</div>
+  <div class="card-preview"><canvas id="cardCanvas" width="1080" height="1440"></canvas></div>
+  <button class="btn btn-primary" id="cardSaveBtn">保存图片</button>
+  <button class="btn btn-ghost" id="cardShareBtn" style="margin-top:10px;">分享</button>
 </div>
 
 <script>
@@ -677,6 +694,8 @@ const el = {
   sheetMask: $('sheetMask'), sheet: $('sheet'),
   sheetTitle: $('sheetTitle'), sheetSub: $('sheetSub'), sheetTotal: $('sheetTotal'),
   sheetKcal: $('sheetKcal'), sheetBadge: $('sheetBadge'), sheetBody: $('sheetBody'),
+  cardBtn: $('cardBtn'), cardMask: $('cardMask'), cardSheet: $('cardSheet'),
+  cardCanvas: $('cardCanvas'), cardSaveBtn: $('cardSaveBtn'), cardShareBtn: $('cardShareBtn'),
 };
 
 const R = 51;
@@ -1255,6 +1274,328 @@ el.saveConfigBtn.addEventListener('click', () => {
   saveConfig(config);
   setStatusTemporary('配置已保存', 1500);
 });
+
+/* ==================== 分享卡片 ==================== */
+const CARD_W = 1080, CARD_H = 1440;
+const CARD_FONT = '"PingFang SC","Microsoft YaHei",-apple-system,"SF Pro Text",sans-serif';
+const cardFont = (size, weight = 400) => `${weight} ${size}px ${CARD_FONT}`;
+
+// 颜色梯度：蓝 → 青 → 绿 → 黄 → 橙 → 红
+// 横轴是「已摄入 / 目标」，绿色锚定在达标区间，所以绿色始终代表"刚刚好"，
+// 蓝青在下（还很宽裕），黄橙红在上（开始超了）。
+const RAMP = [
+  [0.00, '#0a84ff'], // 蓝
+  [0.35, '#32ade6'], // 青
+  [0.80, '#30d158'], // 绿 —— 达标起点
+  [1.10, '#ffd60a'], // 黄 —— 达标终点
+  [1.35, '#ff9f0a'], // 橙
+  [1.60, '#ff453a'], // 红
+];
+
+function cardHex2rgb(h) {
+  return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+}
+function cardMixHex(a, b, t) {
+  const A = cardHex2rgb(a), B = cardHex2rgb(b);
+  return '#' + A.map((v, i) => Math.round(Math.max(0, Math.min(255, v + (B[i] - v) * t)))
+    .toString(16).padStart(2, '0')).join('');
+}
+// 连续色：环形用，像温度计一样平滑过渡
+function rampColor(p) {
+  if (p <= RAMP[0][0]) return RAMP[0][1];
+  for (let i = 1; i < RAMP.length; i++) {
+    if (p <= RAMP[i][0]) {
+      const [p0, c0] = RAMP[i - 1], [p1, c1] = RAMP[i];
+      return cardMixHex(c0, c1, (p - p0) / (p1 - p0));
+    }
+  }
+  return RAMP[RAMP.length - 1][1];
+}
+// 就彩色：文字用，取最近的一档原色，保证清晰可读
+function stepColor(p) {
+  let best = RAMP[0][1], bestD = Infinity;
+  for (const [stop, color] of RAMP) {
+    const d = Math.abs(p - stop);
+    if (d < bestD) { bestD = d; best = color; }
+  }
+  return best;
+}
+
+// 文案阶梯：档距 = 目标 / 9，默认目标 1800 时正好每档 200 卡。
+// 文案里不写具体数字，"一半了"这类说法在任何目标下都成立。
+const LADDER_LINES = [
+  ['今天还一口没动', '胃：今天暂未营业', '战绩 0，非常完美', '开局良好，别急着夸'],
+  ['开张了，还算克制', '刚热身，不慌', '一顿早饭，小场面', '这点量，还不够我热身'],
+  ['稳住了，问题不大', '一切尽在掌握（大概）', '刚够塞牙缝，继续', '目前体面还在'],
+  ['一切正常，继续保持', '这个进度，我自己都感动', '今天的我很有分寸', '稳步推进，毫无破绽'],
+  ['到这儿都还说得过去', '还没失控，先表扬一下自己', '目前状态：假装很自律', '撑到现在，全靠演技'],
+  ['一半了……开始有点心动', '我的意志力开始打折', '一半进度，一半心虚', '嘴上说够了，心里想下顿'],
+  ['手有点不听使唤了', '理智正在退出群聊', '自控力疑似已离职', '现在停下还来得及……吧'],
+  ['快了，就剩最后一哆嗦', '悬崖边上，我选择闭眼', '腿它自己往厨房走了', '剩下的额度，我盯得很紧'],
+  ['就差这一口了，忍住', '额度见底，心跳加速', '再吃一口就得写检讨', '最后的倔强：我不饿'],
+];
+const GOOD_LINES = [
+  '今天真的没吃多少', '今日份自律，已到账', '这个数字，值得发个朋友圈',
+  '我居然做到了，记录一下', '今天的我，配得上一句夸奖',
+];
+const OVER_LINES = [
+  '没吃多少，就是有点多', '数字很诚实，我不太想面对', '今天的账，明天再算',
+  '不怪食物，怪我嘴', '差一点点就完美了，差得有点多',
+];
+// 隐藏档：≥3000 卡，且至少超过目标 50%（免得高目标用户被误伤）
+const HIDDEN_LINES = [
+  '这不是超标，这是行为艺术', '这个数字，建议直接报警',
+  '今日成就：把一天的额度吃成了两天', '别慌，明天开始（第 108 次）',
+  '解锁隐藏结局：自助餐の终章',
+];
+
+// 用日期做种子：同一天永远同一条（重开卡片不跳），隔天才换
+function seededIndex(dateKey, len, salt = 0) {
+  let h = salt;
+  for (let i = 0; i < dateKey.length; i++) h = (h * 31 + dateKey.charCodeAt(i)) >>> 0;
+  return h % len;
+}
+
+function cardStateFor(intake, goal, range, dateKey) {
+  const lowCut = goal * range.low / 100;
+  const highCut = goal * range.high / 100;
+  const hiddenCut = Math.max(3000, goal * 1.5);
+  const p = goal > 0 ? intake / goal : 0;
+  const ring = rampColor(p);
+  const ink = stepColor(p);
+
+  if (intake >= hiddenCut) {
+    const line = HIDDEN_LINES[seededIndex(dateKey, HIDDEN_LINES.length, 7)];
+    return { kind: 'hidden', ringColor: ring, segments: [[line, ink]] };
+  }
+  if (intake > highCut) {
+    const line = OVER_LINES[seededIndex(dateKey, OVER_LINES.length, 5)];
+    // 命中第一条时把品牌名接上，保留「没吃多少，就是有点多」的原始笑点
+    if (line === OVER_LINES[0]) {
+      return { kind: 'over', ringColor: ring,
+               segments: [['没吃多少，', '#ffffff'], ['就是有点多', ink]] };
+    }
+    return { kind: 'over', ringColor: ring, segments: [[line, ink]] };
+  }
+  if (intake >= lowCut) {
+    const line = GOOD_LINES[seededIndex(dateKey, GOOD_LINES.length, 3)];
+    // 达标固定绿色：绿色就是"刚刚好"的语义锚点
+    return { kind: 'good', ringColor: '#30d158', segments: [[line, '#30d158']] };
+  }
+  const step = goal / 9;
+  const idx = Math.max(0, Math.min(LADDER_LINES.length - 1, Math.floor(intake / step)));
+  const lines = LADDER_LINES[idx];
+  const line = lines[seededIndex(dateKey, lines.length, idx + 1)];
+  return { kind: 'stage' + idx, ringColor: ring, segments: [[line, ink]] };
+}
+
+function cardRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawShareCard(canvas, d) {
+  const W = CARD_W, H = CARD_H;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const st = cardStateFor(d.intake, d.goal, d.range, d.dateKey);
+  const C = {
+    text: '#ffffff', text2: 'rgba(235,235,245,0.60)', text3: 'rgba(235,235,245,0.34)',
+    accent: '#0a84ff', glass: 'rgba(28,28,30,0.66)', border: 'rgba(255,255,255,0.10)',
+  };
+
+  // 背景：近黑 + 三色氛围光（对齐应用本体）
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  for (const [x, y, r, color] of [
+    [W * 0.15, H * -0.10, W * 0.75, 'rgba(10,132,255,0.22)'],
+    [W * 0.85, H * 0.15, W * 0.75, 'rgba(191,90,242,0.16)'],
+    [W * 0.50, H * 1.10, W * 0.85, 'rgba(48,209,88,0.14)'],
+  ]) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, color);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // 玻璃面板
+  const P = 64;
+  cardRoundRect(ctx, P, P, W - P * 2, H - P * 2, 56);
+  ctx.fillStyle = C.glass;
+  ctx.fill();
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  const cx = W / 2;
+  ctx.textBaseline = 'alphabetic';
+
+  // 品牌 + 日期
+  ctx.textAlign = 'left';
+  ctx.fillStyle = C.text;
+  ctx.font = cardFont(82, 700);
+  ctx.fillText('没吃多少', P + 64, P + 118);
+  ctx.fillStyle = C.text2;
+  ctx.font = cardFont(34, 500);
+  ctx.fillText(`${d.dateLabel} · ${d.weekday}`, P + 66, P + 172);
+
+  // 环形进度
+  const ringCx = cx, ringCy = P + 406, ringR = 150, lw = 24;
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(120,120,128,0.26)';
+  ctx.beginPath();
+  ctx.arc(ringCx, ringCy, ringR, 0, Math.PI * 2);
+  ctx.stroke();
+  const pct = Math.min(d.intake / d.goal, 1);
+  ctx.strokeStyle = st.ringColor;
+  ctx.beginPath();
+  ctx.arc(ringCx, ringCy, ringR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.text;
+  ctx.font = cardFont(110, 700);
+  ctx.fillText(String(Math.round(d.intake)), ringCx, ringCy + 24);
+  ctx.fillStyle = C.text2;
+  ctx.font = cardFont(28, 500);
+  ctx.fillText('已摄入 kcal', ringCx, ringCy + 74);
+
+  // 文案：紧贴数字，让笑话和它吐槽的数字同时被看到
+  const punchY = ringCy + ringR + 96;
+  ctx.font = cardFont(46, 700);
+  ctx.textAlign = 'left';   // 上面画环形数字时是 center，必须切回来
+  const widths = st.segments.map(([t]) => ctx.measureText(t).width);
+  let x = cx - widths.reduce((a, b) => a + b, 0) / 2;
+  st.segments.forEach(([t, color], i) => {
+    ctx.fillStyle = color;
+    ctx.fillText(t, x, punchY);
+    x += widths[i];
+  });
+
+  // 目标 / 剩余
+  const remaining = d.goal - d.intake;
+  const statLabelY = punchY + 88;
+  const statValueY = statLabelY + 56;
+  ctx.textAlign = 'center';
+  ctx.font = cardFont(30, 500);
+  ctx.fillStyle = C.text2;
+  ctx.fillText('目标', cx - 150, statLabelY);
+  ctx.fillText(remaining < 0 ? '超出' : '剩余', cx + 150, statLabelY);
+  ctx.font = cardFont(50, 700);
+  ctx.fillStyle = C.text;
+  ctx.fillText(String(d.goal), cx - 150, statValueY);
+  ctx.fillStyle = remaining < 0 ? '#ff453a' : C.text;
+  ctx.fillText(String(Math.abs(Math.round(remaining))), cx + 150, statValueY);
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, statLabelY - 30);
+  ctx.lineTo(cx, statValueY + 10);
+  ctx.stroke();
+
+  // 菜品列表（最多 5 行）
+  const listTop = statValueY + 54;
+  ctx.beginPath();
+  ctx.moveTo(P + 64, listTop);
+  ctx.lineTo(W - P - 64, listTop);
+  ctx.stroke();
+  const MAX_ROWS = 5;
+  d.meals.slice(0, MAX_ROWS).forEach((m, i) => {
+    const y = listTop + 62 + i * 56;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = C.text;
+    ctx.font = cardFont(34, 400);
+    ctx.fillText(m.name, P + 64, y);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = C.accent;
+    ctx.font = cardFont(34, 600);
+    ctx.fillText(String(m.kcal), W - P - 64, y);
+  });
+  if (d.meals.length > MAX_ROWS) {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = C.text3;
+    ctx.font = cardFont(28, 400);
+    ctx.fillText(`… 还有 ${d.meals.length - MAX_ROWS} 项`, P + 64, listTop + 62 + MAX_ROWS * 56);
+  }
+
+  // 底部地址
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.text3;
+  ctx.font = cardFont(28, 500);
+  ctx.fillText('iorlchotae.github.io/not-that-much', cx, H - P - 56);
+}
+
+function buildCardData() {
+  const now = new Date();
+  return {
+    intake: records.reduce((s, r) => s + (r.kcal || 0), 0),
+    goal,
+    range,
+    dateKey: todayKey(),
+    dateLabel: `${now.getMonth() + 1}月${now.getDate()}日`,
+    weekday: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][now.getDay()],
+    meals: records.map(r => ({ name: String(r.name).replace(/（.*?）$/, ''), kcal: Math.round(r.kcal) })),
+  };
+}
+
+function openCardSheet() {
+  if (!records.length) {
+    setStatus('先记一笔，再来生成卡片', true);
+    return;
+  }
+  drawShareCard(el.cardCanvas, buildCardData());
+  el.cardMask.classList.add('show');
+  el.cardSheet.classList.add('show');
+}
+
+function closeCardSheet() {
+  el.cardMask.classList.remove('show');
+  el.cardSheet.classList.remove('show');
+}
+
+function saveCardImage() {
+  el.cardCanvas.toBlob(blob => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `没吃多少-${todayKey()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }, 'image/png');
+}
+
+async function shareCardImage() {
+  const blob = await new Promise(res => el.cardCanvas.toBlob(res, 'image/png'));
+  if (!blob) return;
+  const file = new File([blob], `没吃多少-${todayKey()}.png`, { type: 'image/png' });
+  // 不支持文件分享就退回下载
+  if (!navigator.canShare || !navigator.canShare({ files: [file] })) {
+    saveCardImage();
+    setStatus('当前浏览器不支持直接分享，已改为保存图片');
+    return;
+  }
+  try {
+    await navigator.share({ files: [file], title: '没吃多少' });
+  } catch (e) {
+    // 用户取消分享不算错误
+    if (e && e.name !== 'AbortError') saveCardImage();
+  }
+}
+
+el.cardBtn.addEventListener('click', openCardSheet);
+el.cardMask.addEventListener('click', closeCardSheet);
+el.cardSaveBtn.addEventListener('click', saveCardImage);
+el.cardShareBtn.addEventListener('click', shareCardImage);
 
 /* ==================== 初始化 ==================== */
 (function init() {
