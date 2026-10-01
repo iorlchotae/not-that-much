@@ -5,8 +5,9 @@
 一个**单文件网页应用**：没有构建步骤、没有后端、没有账号。数据只存在你自己的浏览器里。
 自备一个 DeepSeek API Key 就能用（应用内有引导），每张照片识别约 268 tokens。
 
-> **在线试用**：`LIVE_DEMO_URL` （GitHub Pages）
-> 首次使用请点页面底部「⚙️ 配置 DeepSeek API」填入你自己的 Key。
+> **在线试用**：https://iorlchotae.github.io/photo-calorie-tracker/
+>
+> 首次使用请点页面底部「⚙️ 配置 DeepSeek API」，填入你自己的 Key。
 
 ![今日视图](assets/preview-today.png)
 
