@@ -1,0 +1,10 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local API keys, if anyone drops them next to the app
+.env
+.env.*
+*.local
+config.local.js

@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>热量记录</title>
+<style>
+  :root {
+    --accent: #0a84ff;
+    --green:  #30d158;
+    --orange: #ff9f0a;
+    --red:    #ff453a;
+    --purple: #bf5af2;
+    --bg: #000;
+    --card: rgba(28, 28, 30, 0.68);
+    --card-solid: #1c1c1e;
+    --sheet: rgba(28, 28, 30, 0.94);
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #fff;
+    --text-2: rgba(235, 235, 245, 0.6);
+    --text-3: rgba(235, 235, 245, 0.3);
+    --fill: rgba(120, 120, 128, 0.24);
+    --fill-2: rgba(120, 120, 128, 0.16);
+    --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.4);
+    --shadow-sheet: 0 -8px 40px rgba(0,0,0,0.6);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f2f2f7;
+      --card: rgba(255, 255, 255, 0.72);
+      --card-solid: #fff;
+      --sheet: rgba(255, 255, 255, 0.96);
+      --border: rgba(0, 0, 0, 0.06);
+      --text: #000;
+      --text-2: rgba(60, 60, 67, 0.6);
+      --text-3: rgba(60, 60, 67, 0.3);
+      --fill: rgba(120, 120, 128, 0.16);
+      --fill-2: rgba(120, 120, 128, 0.1);
+      --shadow-card: 0 1px 0 rgba(255,255,255,0.8) inset, 0 8px 24px rgba(0,0,0,0.06);
+      --shadow-sheet: 0 -8px 40px rgba(0,0,0,0.18);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+    padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 32px);
+    max-width: 480px; margin: 0 auto; font-size: 15px;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background:
+      radial-gradient(circle at 15% -10%, rgba(10, 132, 255, 0.22), transparent 45%),
+      radial-gradient(circle at 85% 15%, rgba(191, 90, 242, 0.16), transparent 45%),
+      radial-gradient(circle at 50% 110%, rgba(48, 209, 88, 0.14), transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+  main, header, section { position: relative; z-index: 1; }
+
+  header { padding: 28px 4px 16px; }
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+  .h-sub { font-size: 13px; color: var(--text-2); margin-top: 2px; font-weight: 500; }
+
+  .segmented {
+    display: flex; background: var(--fill); border-radius: 11px;
+    padding: 2px; margin-bottom: 16px;
+  }
+  .segmented button {
+    flex: 1; background: transparent; border: none;
+    padding: 8px 12px; font-size: 13px; font-weight: 600;
+    font-family: inherit; color: var(--text); border-radius: 9px;
+    cursor: pointer; transition: background .25s cubic-bezier(.4,0,.2,1), box-shadow .25s;
+    letter-spacing: -0.01em;
+  }
+  .segmented button.active {
+    background: var(--card-solid);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 3px 1px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.04);
+  }
+
+  .card {
+    background: var(--card);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.5px solid var(--border); border-radius: 22px;
+    padding: 20px; margin-bottom: 14px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .ring-wrap { display: flex; align-items: center; gap: 22px; }
+  .ring { position: relative; width: 118px; height: 118px; flex-shrink: 0; }
+  .ring svg { transform: rotate(-90deg); display: block; }
+  .ring-text {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .ring-text .num {
+    font-size: 30px; font-weight: 700; letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .ring-text .lbl { font-size: 10px; color: var(--text-2); margin-top: 4px; font-weight: 500; }
+  .stats { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
+  .stat-row .k { color: var(--text-2); }
+  .stat-row .v {
+    font-weight: 600; font-variant-numeric: tabular-nums;
+    font-size: 16px; letter-spacing: -0.01em;
+  }
+  .stat-row .v.over { color: var(--red); }
+
+  .goal-edit {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 16px; padding-top: 14px;
+    border-top: 0.5px solid var(--border);
+    font-size: 13px; color: var(--text-2);
+  }
+  .goal-edit input {
+    width: 74px; background: var(--fill-2); border: none;
+    border-radius: 9px; color: var(--text);
+    padding: 7px 10px; font-size: 14px; text-align: center;
+    font-family: inherit; font-variant-numeric: tabular-nums; font-weight: 600;
+  }
+  .goal-edit input:focus { outline: 1px solid var(--accent); }
+
+  .range-edit {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 10px; font-size: 13px; color: var(--text-2);
+  }
+  .range-edit input {
+    width: 58px; background: var(--fill-2); border: none;
+    border-radius: 9px; color: var(--text);
+    padding: 7px 8px; font-size: 14px; text-align: center;
+    font-family: inherit; font-variant-numeric: tabular-nums; font-weight: 600;
+  }
+  .range-edit input:focus { outline: 1px solid var(--accent); }
+  .range-edit .sep { color: var(--text-3); }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 15px; border-radius: 15px; border: none;
+    font-size: 16px; font-weight: 600; font-family: inherit;
+    cursor: pointer; transition: transform .1s, opacity .15s;
+    letter-spacing: -0.01em;
+  }
+  .btn:active { transform: scale(0.98); opacity: 0.85; }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 4px 14px rgba(10, 132, 255, 0.35);
+  }
+  .btn-primary:disabled { background: var(--fill); color: var(--text-3); box-shadow: none; }
+  .btn-ghost {
+    background: var(--fill-2); color: var(--text); font-size: 14px; padding: 12px;
+  }
+
+  #preview { width: 100%; border-radius: 14px; margin-bottom: 14px; display: none; max-height: 260px; object-fit: cover; }
+  .status { font-size: 13px; color: var(--text-2); text-align: center; margin-top: 12px; min-height: 18px; line-height: 1.4; }
+  .status.err { color: var(--red); }
+
+  .section-title {
+    font-size: 13px; font-weight: 600; color: var(--text-2);
+    text-transform: uppercase; letter-spacing: 0.06em; margin: 0 4px 10px;
+  }
+  .meal-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 13px 0; border-bottom: 0.5px solid var(--border); font-size: 15px;
+  }
+  .meal-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .meal-item:first-child { padding-top: 0; }
+  .meal-item .name { flex: 1; letter-spacing: -0.01em; }
+  .meal-item .time {
+    font-size: 12px; color: var(--text-3); margin-left: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .meal-item .kcal {
+    color: var(--accent); font-weight: 600; margin-left: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .meal-item .del {
+    background: none; border: none; color: var(--text-3);
+    font-size: 20px; padding: 0 0 0 12px; cursor: pointer;
+    line-height: 1; font-family: inherit;
+  }
+  .empty { text-align: center; color: var(--text-3); font-size: 14px; padding: 24px 0; }
+
+  .hero-stat { text-align: center; padding: 8px 0 20px; position: relative; }
+  .hero-stat .big {
+    font-size: 44px; font-weight: 700; letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .hero-stat .unit { font-size: 16px; font-weight: 500; color: var(--text-2); margin-left: 4px; }
+  .hero-stat .cap { font-size: 13px; color: var(--text-2); margin-top: 8px; }
+
+  .week-compare {
+    display: flex; justify-content: center; gap: 16px;
+    margin-top: 12px; font-size: 12px; color: var(--text-2);
+  }
+  .trend {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--fill-2); border-radius: 20px;
+    padding: 5px 11px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .trend.up   { color: var(--red); }
+  .trend.down { color: var(--green); }
+  .trend.flat { color: var(--text-2); }
+
+  .week-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 16px; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+  .bar-track {
+    width: 100%; height: 88px; background: var(--fill-2);
+    border-radius: 8px; position: relative; overflow: hidden;
+    transition: transform .15s;
+  }
+  .bar-col:active .bar-track { transform: scale(0.94); }
+  .bar-fill {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    border-radius: 8px; transition: height .6s cubic-bezier(.4,0,.2,1);
+    background: var(--accent);
+  }
+  .bar-fill.good { background: var(--green); }
+  .bar-fill.over { background: var(--red); }
+  .bar-goal {
+    position: absolute; left: 0; right: 0;
+    border-top: 1px dashed rgba(255,255,255,0.35); z-index: 2;
+  }
+  @media (prefers-color-scheme: light) {
+    .bar-goal { border-top-color: rgba(0,0,0,0.25); }
+  }
+  .bar-label { font-size: 11px; color: var(--text-2); font-weight: 500; }
+  .bar-col.today .bar-label { color: var(--accent); font-weight: 700; }
+  .bar-col.today .bar-track { box-shadow: 0 0 0 1.5px var(--accent); }
+
+  .mini-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px; background: var(--border);
+    border-radius: 14px; overflow: hidden; margin-top: 18px;
+  }
+  .mini-stat { background: var(--card-solid); padding: 14px 8px; text-align: center; }
+  @media (prefers-color-scheme: light) { .mini-stat { background: #fff; } }
+  .mini-stat .v {
+    font-size: 18px; font-weight: 700;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+  }
+  .mini-stat .k { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+
+  .chart-wrap { margin-top: 20px; padding-top: 18px; border-top: 0.5px solid var(--border); }
+  .chart-title {
+    font-size: 12px; color: var(--text-2); margin-bottom: 12px;
+    font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .chart-svg { width: 100%; height: 140px; display: block; overflow: visible; }
+  .chart-svg .area { fill: url(#areaGrad); }
+  .chart-svg .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .chart-svg .goal-line { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 4 4; }
+  .chart-svg .dot { fill: var(--accent); }
+  .chart-svg .dot-today { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+  .chart-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-3); margin-top: 6px; }
+
+  .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .month-nav .m-title { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .month-nav button {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--fill-2); border: none; color: var(--text);
+    font-size: 16px; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .month-nav button:disabled { opacity: 0.3; cursor: default; }
+
+  .cal-head { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 8px; }
+  .cal-head span { text-align: center; font-size: 11px; color: var(--text-2); font-weight: 600; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .cal-cell {
+    aspect-ratio: 1; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+    background: var(--fill-2); color: var(--text-2);
+    position: relative; transition: transform .15s;
+    cursor: pointer;
+  }
+  .cal-cell:active:not(.blank) { transform: scale(0.9); }
+  .cal-cell.filled { color: #fff; }
+  .cal-cell.today { box-shadow: 0 0 0 2px var(--accent); color: var(--text); }
+  .cal-cell.blank { background: transparent; cursor: default; }
+
+  .legend { display: flex; gap: 14px; justify-content: center; margin-top: 16px; font-size: 11px; color: var(--text-2); flex-wrap: wrap; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  .sheet-mask {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 100; opacity: 0; pointer-events: none;
+    transition: opacity .3s; backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .sheet-mask.show { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    max-width: 480px; margin: 0 auto;
+    background: var(--sheet);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 22px 22px 0 0;
+    padding: 8px 20px calc(env(safe-area-inset-bottom) + 24px);
+    z-index: 101;
+    transform: translateY(100%);
+    transition: transform .38s cubic-bezier(.32,.72,0,1);
+    box-shadow: var(--shadow-sheet);
+    max-height: 80vh; overflow-y: auto;
+  }
+  .sheet.show { transform: translateY(0); }
+  .sheet-handle {
+    width: 36px; height: 5px; background: var(--text-3);
+    border-radius: 3px; margin: 0 auto 16px;
+  }
+  .sheet-title {
+    font-size: 20px; font-weight: 700;
+    letter-spacing: -0.02em; margin-bottom: 4px;
+  }
+  .sheet-sub {
+    font-size: 13px; color: var(--text-2); margin-bottom: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .sheet-total {
+    display: flex; align-items: baseline; gap: 8px; margin-bottom: 20px;
+  }
+  .sheet-total .big {
+    font-size: 40px; font-weight: 700;
+    letter-spacing: -0.04em; font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .sheet-total .u { font-size: 15px; color: var(--text-2); }
+  .sheet-total .badge {
+    margin-left: auto; font-size: 12px; font-weight: 600;
+    padding: 5px 11px; border-radius: 20px;
+  }
+  .badge.good { background: rgba(48,209,88,0.18); color: var(--green); }
+  .badge.over { background: rgba(255,69,58,0.18); color: var(--red); }
+  .badge.low  { background: rgba(10,132,255,0.18); color: var(--accent); }
+  .badge.none { background: var(--fill-2); color: var(--text-2); }
+
+  .config-area .toggle {
+    font-size: 13px; color: var(--accent); background: none;
+    border: none; cursor: pointer; padding: 0; font-family: inherit; font-weight: 500;
+  }
+  .config-area label {
+    display: block; margin-top: 14px;
+    font-size: 12px; color: var(--text-2); font-weight: 500;
+  }
+  .config-area input {
+    width: 100%; background: var(--fill-2); border: none;
+    border-radius: 11px; color: var(--text);
+    padding: 12px 14px; font-size: 14px; margin-top: 6px; font-family: inherit;
+  }
+  .config-area input:focus { outline: 1px solid var(--accent); }
+  .config-hint { font-size: 12px; color: var(--text-3); margin-top: 10px; line-height: 1.6; }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>热量</h1>
+  <div class="h-sub" id="dateSub"></div>
+</header>
+
+<div class="segmented" id="segmented">
+  <button data-view="today" class="active">今日</button>
+  <button data-view="week">本周</button>
+  <button data-view="month">本月</button>
+</div>
+
+<main>
+  <!-- 今日 -->
+  <section data-panel="today">
+    <div class="card">
+      <div class="ring-wrap">
+        <div class="ring">
+          <svg width="118" height="118" viewBox="0 0 118 118">
+            <circle cx="59" cy="59" r="51" fill="none" stroke="var(--fill-2)" stroke-width="10"/>
+            <circle id="ringProgress" cx="59" cy="59" r="51" fill="none" stroke="var(--accent)"
+                    stroke-width="10" stroke-linecap="round"
+                    stroke-dasharray="320.44" stroke-dashoffset="320.44"
+                    style="transition: stroke-dashoffset .7s cubic-bezier(.4,0,.2,1), stroke .3s;"/>
+          </svg>
+          <div class="ring-text">
+            <span class="num" id="ringNum">0</span>
+            <span class="lbl">已摄入 kcal</span>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat-row"><span class="k">目标</span><span class="v" id="goalDisplay">1800</span></div>
+          <div class="stat-row"><span class="k">已摄入</span><span class="v" id="intakeDisplay">0</span></div>
+          <div class="stat-row"><span class="k">剩余</span><span class="v" id="remainDisplay">1800</span></div>
+        </div>
+      </div>
+      <div class="goal-edit">
+        <span>每日目标</span>
+        <input type="number" id="goalInput" value="1800" min="500" max="5000" inputmode="numeric">
+        <span>kcal</span>
+      </div>
+      <div class="range-edit">
+        <span>达标范围</span>
+        <input type="number" id="lowInput" value="80" min="50" max="100" inputmode="numeric">
+        <span class="sep">%</span>
+        <span class="sep">—</span>
+        <input type="number" id="highInput" value="110" min="100" max="150" inputmode="numeric">
+        <span class="sep">%</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <img id="preview" alt="预览">
+      <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
+      <button class="btn btn-primary" id="photoBtn">📷 拍照识别</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">今日记录</div>
+      <div id="mealList"></div>
+    </div>
+  </section>
+
+  <!-- 本周 -->
+  <section data-panel="week" hidden>
+    <div class="card">
+      <div class="hero-stat">
+        <div><span class="big" id="weekTotal">0</span><span class="unit">kcal</span></div>
+        <div class="cap" id="weekRange"></div>
+        <div class="week-compare" id="weekCompare"></div>
+      </div>
+      <div class="week-bars" id="weekBars"></div>
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="v" id="weekAvg">0</div>
+          <div class="k">日均 kcal</div>
+        </div>
+        <div class="mini-stat">
+          <div class="v" id="weekGood">0</div>
+          <div class="k">达标天数</div>
+        </div>
+        <div class="mini-stat">
+          <div class="v" id="weekDiff">0</div>
+          <div class="k">vs 目标</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 本月 -->
+  <section data-panel="month" hidden>
+    <div class="card">
+      <div class="month-nav">
+        <button id="prevMonth">‹</button>
+        <div class="m-title" id="monthTitle"></div>
+        <button id="nextMonth">›</button>
+      </div>
+      <div class="cal-head">
+        <span>一</span><span>二</span><span>三</span><span>四</span>
+        <span>五</span><span>六</span><span>日</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="legend">
+        <span><i style="background: rgba(10,132,255,0.35)"></i>偏低</span>
+        <span><i style="background: rgba(10,132,255,0.7)"></i>正常</span>
+        <span><i style="background: rgba(48,209,88,0.8)"></i>达标</span>
+        <span><i style="background: rgba(255,69,58,0.8)"></i>超标</span>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-title">月度趋势</div>
+        <svg class="chart-svg" id="trendSvg" viewBox="0 0 320 140" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.28"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line class="goal-line" id="goalLine" x1="0" y1="0" x2="320" y2="0"/>
+          <path class="area" id="trendArea" d=""/>
+          <path class="line" id="trendLine" d=""/>
+          <g id="trendDots"></g>
+        </svg>
+        <div class="chart-axis">
+          <span>1</span><span id="axisMid">15</span><span id="axisEnd">30</span>
+        </div>
+      </div>
+
+      <div class="mini-stats" style="margin-top: 20px;">
+        <div class="mini-stat">
+          <div class="v" id="monthAvg">0</div>
+          <div class="k">日均 kcal</div>
+        </div>
+        <div class="mini-stat">
+          <div class="v" id="monthGood">0</div>
+          <div class="k">达标天数</div>
+        </div>
+        <div class="mini-stat">
+          <div class="v" id="monthRecorded">0</div>
+          <div class="k">记录天数</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 配置 -->
+  <div class="card config-area">
+    <button class="toggle" id="configToggle">⚙️ 配置 DeepSeek API</button>
+    <div id="configPanel" hidden>
+      <label>DeepSeek API Key
+        <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxx" autocomplete="off">
+      </label>
+      <div class="config-hint">
+        数据保存在本机浏览器，不会上传。不知道如何获取？点击下方按钮。
+      </div>
+      <button class="btn btn-ghost" id="getApiBtn" style="margin-top: 14px;">
+        🔑 去 DeepSeek 获取 API Key
+      </button>
+      <button class="btn btn-primary" id="saveConfigBtn" style="margin-top: 10px; padding: 12px; font-size: 14px;">保存配置</button>
+    </div>
+  </div>
+</main>
+
+<div class="sheet-mask" id="sheetMask"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="sheetTitle"></div>
+  <div class="sheet-sub" id="sheetSub"></div>
+  <div class="sheet-total" id="sheetTotal" style="display:none;">
+    <span class="big" id="sheetKcal">0</span>
+    <span class="u">kcal</span>
+    <span class="badge" id="sheetBadge"></span>
+  </div>
+  <div id="sheetBody"></div>
+</div>
+
+<script>
+/* ==================== 食物库 ==================== */
+// 数值为「每 100g 热量（kcal）」，是常见做法的粗略值。减肥场景看趋势即可，不追求实验室精度。
+const FOOD_DB = {
+  /* --- 主食 --- */
+  "米饭": { kcal: 116 }, "白米饭": { kcal: 116 }, "糙米饭": { kcal: 112 },
+  "馒头": { kcal: 223 }, "花卷": { kcal: 214 }, "面条": { kcal: 137 },
+  "包子": { kcal: 227 }, "小笼包": { kcal: 230 }, "烧麦": { kcal: 220 },
+  "饺子": { kcal: 240 }, "馄饨": { kcal: 150 }, "粥": { kcal: 46 },
+  "白粥": { kcal: 46 }, "小米粥": { kcal: 46 }, "皮蛋瘦肉粥": { kcal: 60 },
+  "蛋炒饭": { kcal: 180 }, "盖浇饭": { kcal: 160 }, "煲仔饭": { kcal: 170 },
+  "米线": { kcal: 110 }, "米粉": { kcal: 110 }, "螺蛳粉": { kcal: 160 },
+  "肠粉": { kcal: 120 }, "凉皮": { kcal: 130 }, "面包": { kcal: 265 },
+  "燕麦": { kcal: 367 }, "玉米": { kcal: 96 }, "红薯": { kcal: 86 },
+  "紫薯": { kcal: 82 }, "土豆": { kcal: 81 },
+
+  /* --- 荤菜 --- */
+  "青椒炒肉": { kcal: 180 }, "回锅肉": { kcal: 280 }, "红烧肉": { kcal: 350 },
+  "鱼香肉丝": { kcal: 160 }, "宫保鸡丁": { kcal: 190 }, "辣子鸡": { kcal: 230 },
+  "糖醋里脊": { kcal: 250 }, "糖醋排骨": { kcal: 260 }, "京酱肉丝": { kcal: 200 },
+  "水煮肉片": { kcal: 190 }, "水煮鱼": { kcal: 150 }, "酸菜鱼": { kcal: 140 },
+  "清蒸鱼": { kcal: 105 }, "红烧鱼": { kcal: 160 }, "麻婆豆腐": { kcal: 130 },
+  "番茄炒蛋": { kcal: 120 }, "炒鸡蛋": { kcal: 150 }, "烤鸡翅": { kcal: 220 },
+  "炸鸡": { kcal: 280 }, "鸡胸肉": { kcal: 133 }, "牛肉": { kcal: 125 },
+  "猪肉": { kcal: 395 }, "排骨": { kcal: 278 }, "虾": { kcal: 93 },
+  "羊肉": { kcal: 203 }, "烤鸭": { kcal: 240 }, "卤味": { kcal: 200 },
+
+  /* --- 素菜 --- */
+  "清炒时蔬": { kcal: 60 }, "炒青菜": { kcal: 60 }, "炒土豆丝": { kcal: 90 },
+  "干煸豆角": { kcal: 120 }, "蒜蓉西兰花": { kcal: 55 }, "凉拌黄瓜": { kcal: 40 },
+  "地三鲜": { kcal: 150 }, "香菇青菜": { kcal: 65 }, "豆腐": { kcal: 82 },
+  "西兰花": { kcal: 34 }, "白菜": { kcal: 17 }, "黄瓜": { kcal: 15 },
+  "番茄": { kcal: 18 }, "生菜": { kcal: 15 },
+
+  /* --- 早餐 / 小吃 --- */
+  "鸡蛋": { kcal: 144 }, "牛奶": { kcal: 54 }, "豆浆": { kcal: 31 },
+  "酸奶": { kcal: 72 }, "豆腐脑": { kcal: 47 }, "油条": { kcal: 388 },
+  "煎饼果子": { kcal: 260 }, "手抓饼": { kcal: 300 }, "三明治": { kcal: 250 },
+
+  /* --- 重口 / 外食 --- */
+  "火锅": { kcal: 200 }, "烧烤": { kcal: 250 }, "麻辣烫": { kcal: 150 },
+  "汉堡": { kcal: 250 }, "披萨": { kcal: 270 }, "沙拉": { kcal: 70 },
+  "薯条": { kcal: 312 }, "薯片": { kcal: 536 }, "巧克力": { kcal: 546 },
+  "蛋糕": { kcal: 350 }, "冰淇淋": { kcal: 210 }, "奶茶": { kcal: 90 },
+  "可乐": { kcal: 43 }, "啤酒": { kcal: 43 }, "苹果": { kcal: 52 },
+  "香蕉": { kcal: 89 }, "橙子": { kcal: 48 }, "葡萄": { kcal: 69 },
+};
+
+// 模型常用别名/地方叫法 → 库内标准名。
+// 实测：番茄炒蛋有 3/18 张被识别成「西红柿炒鸡蛋」，不归一化会被错配成「鸡蛋」（144 kcal）。
+const ALIASES = {
+  "西红柿炒鸡蛋": "番茄炒蛋", "西红柿炒蛋": "番茄炒蛋", "番茄炒鸡蛋": "番茄炒蛋",
+  "尖椒炒肉": "青椒炒肉", "青椒肉丝": "青椒炒肉", "尖椒肉丝": "青椒炒肉",
+  "辣椒炒肉": "青椒炒肉", "青椒炒肉丝": "青椒炒肉", "农家小炒肉": "青椒炒肉",
+  "小炒肉": "青椒炒肉", "炒肉": "青椒炒肉",
+  "鸡蛋炒饭": "蛋炒饭", "炒饭": "蛋炒饭", "扬州炒饭": "蛋炒饭",
+  "蔬菜炒饭": "蛋炒饭", "腊肠炒饭": "蛋炒饭", "腊肠彩椒炒饭": "蛋炒饭",
+  "红烧五花肉": "红烧肉", "红烧猪肉": "红烧肉", "五花肉": "红烧肉",
+  "宫爆鸡丁": "宫保鸡丁", "宫爆鸡丁儿": "宫保鸡丁",
+  "麻婆豆腐": "麻婆豆腐", "麻辣豆腐": "麻婆豆腐",
+  "土豆丝": "炒土豆丝", "炒青菜": "清炒时蔬", "青菜": "清炒时蔬",
+  "白米饭": "米饭", "大米饭": "米饭", "米飯": "米饭",
+};
+
+// 模型没给出克数时的兜底份量
+const PORTION_G = 200;
+
+/* ==================== 存储 ==================== */
+const KEY_RECORDS = 'meal_records_v2';
+const KEY_CONFIG  = 'deepseek_config_v1';
+const KEY_GOAL    = 'daily_goal_v1';
+const KEY_RANGE   = 'goal_range_v1';
+
+const pad = n => String(n).padStart(2, '0');
+const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const todayKey = () => dateKey(new Date());
+
+function getAllRecords() {
+  try { return JSON.parse(localStorage.getItem(KEY_RECORDS) || '{}'); }
+  catch { return {}; }
+}
+function saveAllRecords(all) {
+  try { localStorage.setItem(KEY_RECORDS, JSON.stringify(all)); } catch(e) {}
+}
+function loadTodayRecords() { return getAllRecords()[todayKey()] || []; }
+function saveTodayRecords(records) {
+  const all = getAllRecords();
+  all[todayKey()] = records;
+  saveAllRecords(all);
+}
+function loadConfig() {
+  try { return JSON.parse(localStorage.getItem(KEY_CONFIG) || '{}'); }
+  catch { return {}; }
+}
+function saveConfig(cfg) { localStorage.setItem(KEY_CONFIG, JSON.stringify(cfg)); }
+function loadGoal() {
+  const g = parseInt(localStorage.getItem(KEY_GOAL) || '1800', 10);
+  return isNaN(g) ? 1800 : g;
+}
+function saveGoal(g) { localStorage.setItem(KEY_GOAL, String(g)); }
+function loadRange() {
+  try {
+    const r = JSON.parse(localStorage.getItem(KEY_RANGE) || '{}');
+    return { low: r.low || 80, high: r.high || 110 };
+  } catch { return { low: 80, high: 110 }; }
+}
+function saveRange(low, high) {
+  localStorage.setItem(KEY_RANGE, JSON.stringify({ low, high }));
+}
+
+/* ==================== 状态 ==================== */
+let records = loadTodayRecords();
+let config  = loadConfig();
+let goal    = loadGoal();
+let range   = loadRange();
+let currentMonthOffset = 0;
+
+/* ==================== DOM ==================== */
+const $ = id => document.getElementById(id);
+const el = {
+  dateSub: $('dateSub'), segmented: $('segmented'),
+  ringProgress: $('ringProgress'), ringNum: $('ringNum'),
+  goalDisplay: $('goalDisplay'), intakeDisplay: $('intakeDisplay'), remainDisplay: $('remainDisplay'),
+  goalInput: $('goalInput'), lowInput: $('lowInput'), highInput: $('highInput'),
+  fileInput: $('fileInput'), photoBtn: $('photoBtn'), preview: $('preview'), status: $('status'),
+  mealList: $('mealList'),
+  weekTotal: $('weekTotal'), weekRange: $('weekRange'), weekBars: $('weekBars'),
+  weekCompare: $('weekCompare'),
+  weekAvg: $('weekAvg'), weekGood: $('weekGood'), weekDiff: $('weekDiff'),
+  monthTitle: $('monthTitle'), calGrid: $('calGrid'),
+  prevMonth: $('prevMonth'), nextMonth: $('nextMonth'),
+  monthAvg: $('monthAvg'), monthGood: $('monthGood'), monthRecorded: $('monthRecorded'),
+  configToggle: $('configToggle'), configPanel: $('configPanel'),
+  apiKeyInput: $('apiKeyInput'), saveConfigBtn: $('saveConfigBtn'), getApiBtn: $('getApiBtn'),
+  sheetMask: $('sheetMask'), sheet: $('sheet'),
+  sheetTitle: $('sheetTitle'), sheetSub: $('sheetSub'), sheetTotal: $('sheetTotal'),
+  sheetKcal: $('sheetKcal'), sheetBadge: $('sheetBadge'), sheetBody: $('sheetBody'),
+};
+
+const R = 51;
+const CIRC = 2 * Math.PI * R;
+
+/* ==================== 状态提示 ==================== */
+// 单一入口：任何新提示都会取消上一个"自动清除"定时器，
+// 避免早先排队清除的旧提示把后来的识别结果抹掉。
+let statusClearTimer = null;
+function setStatus(text, isError) {
+  clearTimeout(statusClearTimer);
+  el.status.className = 'status' + (isError ? ' err' : '');
+  el.status.textContent = text;
+}
+function setStatusTemporary(text, ms) {
+  setStatus(text);
+  statusClearTimer = setTimeout(() => { el.status.textContent = ''; }, ms);
+}
+
+/* ==================== 工具 ==================== */
+function getWeekDates(base = new Date()) {
+  const d = new Date(base);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  mon.setHours(0, 0, 0, 0);
+  return Array.from({ length: 7 }, (_, i) => {
+    const x = new Date(mon); x.setDate(mon.getDate() + i); return x;
+  });
+}
+function getMonthDates(offset = 0) {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  return Array.from({ length: lastDay }, (_, i) =>
+    new Date(first.getFullYear(), first.getMonth(), i + 1));
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function dayTotal(key) {
+  const all = getAllRecords();
+  return (all[key] || []).reduce((s, r) => s + (r.kcal || 0), 0);
+}
+function isGood(total) {
+  if (!total) return false;
+  return total >= goal * range.low / 100 && total <= goal * range.high / 100;
+}
+function statusOf(total) {
+  if (!total) return 'none';
+  if (isGood(total)) return 'good';
+  if (total > goal * range.high / 100) return 'over';
+  return 'low';
+}
+
+/* ==================== 今日 ==================== */
+function renderToday() {
+  const intake = records.reduce((s, r) => s + (r.kcal || 0), 0);
+  const remain = goal - intake;
+  const pct = Math.min(intake / goal, 1);
+
+  el.ringProgress.style.strokeDashoffset = CIRC * (1 - pct);
+  el.ringProgress.style.stroke =
+    intake > goal * range.high / 100 ? 'var(--red)' :
+    isGood(intake) ? 'var(--green)' : 'var(--accent)';
+  el.ringNum.textContent = Math.round(intake);
+
+  el.goalDisplay.textContent = goal;
+  el.intakeDisplay.textContent = Math.round(intake);
+  el.remainDisplay.textContent = Math.round(Math.abs(remain));
+  el.remainDisplay.className = 'v' + (remain < 0 ? ' over' : '');
+
+  if (records.length === 0) {
+    el.mealList.innerHTML = '<div class="empty">还没有记录，拍一张试试</div>';
+  } else {
+    el.mealList.innerHTML = records
+      .map((r, i) => `
+        <div class="meal-item">
+          <span class="name">${escapeHtml(r.name)}<span class="time">${fmtTime(r.time)}</span></span>
+          <span class="kcal">${Math.round(r.kcal)}</span>
+          <button class="del" data-idx="${i}" aria-label="删除">×</button>
+        </div>`)
+      .join('');
+    el.mealList.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        records.splice(parseInt(btn.dataset.idx, 10), 1);
+        saveTodayRecords(records);
+        renderToday();
+      });
+    });
+  }
+}
+
+/* ==================== 周视图 ==================== */
+function renderWeek() {
+  const dates = getWeekDates();
+  const days = dates.map(d => {
+    const k = dateKey(d);
+    return { date: d, key: k, total: dayTotal(k), isToday: k === todayKey() };
+  });
+
+  const weekTotal = days.reduce((s, d) => s + d.total, 0);
+  const daysWithData = days.filter(d => d.total > 0);
+  const avg = daysWithData.length ? weekTotal / daysWithData.length : 0;
+  const goodDays = days.filter(d => isGood(d.total)).length;
+  const diff = weekTotal - goal * daysWithData.length;
+
+  el.weekTotal.textContent = Math.round(weekTotal).toLocaleString();
+  const start = days[0].date, end = days[6].date;
+  el.weekRange.textContent = `${start.getMonth()+1}月${start.getDate()}日 – ${end.getMonth()+1}月${end.getDate()}日`;
+  el.weekAvg.textContent = Math.round(avg);
+  el.weekGood.textContent = `${goodDays}/7`;
+  el.weekDiff.textContent = daysWithData.length
+    ? (diff > 0 ? '+' : '') + Math.round(diff)
+    : '—';
+  el.weekDiff.style.color = daysWithData.length && diff > 0 ? 'var(--red)' :
+                            daysWithData.length ? 'var(--green)' : '';
+
+  // 周对比（vs 上周）
+  const lastWeekDates = getWeekDates(new Date(Date.now() - 7 * 86400000));
+  const lastTotal = lastWeekDates.reduce((s, d) => s + dayTotal(dateKey(d)), 0);
+  renderWeekCompare(weekTotal, lastTotal);
+
+  const maxKcal = Math.max(goal * 1.2, ...days.map(d => d.total));
+  const goalPct = (goal / maxKcal) * 100;
+
+  el.weekBars.innerHTML = days.map((d, i) => {
+    const pct = maxKcal ? Math.min(d.total / maxKcal * 100, 100) : 0;
+    const st = statusOf(d.total);
+    const cls = st === 'good' ? 'good' : st === 'over' ? 'over' : '';
+    const label = ['一','二','三','四','五','六','日'][i];
+    return `
+      <div class="bar-col ${d.isToday ? 'today' : ''}" data-key="${d.key}">
+        <div class="bar-track">
+          <div class="bar-goal" style="bottom: ${goalPct}%"></div>
+          <div class="bar-fill ${cls}" style="height: ${pct}%"></div>
+        </div>
+        <div class="bar-label">${label}</div>
+      </div>`;
+  }).join('');
+
+  el.weekBars.querySelectorAll('.bar-col').forEach(col => {
+    col.addEventListener('click', () => openDaySheet(col.dataset.key));
+  });
+}
+
+function renderWeekCompare(cur, prev) {
+  if (prev === 0) {
+    el.weekCompare.innerHTML = '<span class="trend flat">上周无数据</span>';
+    return;
+  }
+  const diff = cur - prev;
+  const pct = prev ? (diff / prev * 100) : 0;
+  const absDiff = Math.abs(Math.round(diff));
+  const absPct = Math.abs(pct).toFixed(1);
+
+  let cls, arrow;
+  if (diff > 20) { cls = 'up'; arrow = '↑'; }
+  else if (diff < -20) { cls = 'down'; arrow = '↓'; }
+  else { cls = 'flat'; arrow = '→'; }
+
+  el.weekCompare.innerHTML =
+    `<span class="trend ${cls}">${arrow} 比上周 ${absDiff} kcal (${absPct}%)</span>`;
+}
+
+/* ==================== 月视图 ==================== */
+function cellColor(total) {
+  const st = statusOf(total);
+  if (st === 'none') return null;
+  if (st === 'good') return 'rgba(48,209,88,0.8)';
+  if (st === 'over') return 'rgba(255,69,58,0.8)';
+  const pct = total / goal;
+  if (pct < 0.5) return 'rgba(10,132,255,0.35)';
+  return 'rgba(10,132,255,0.7)';
+}
+
+function renderMonth() {
+  const dates = getMonthDates(currentMonthOffset);
+  const now = new Date();
+  const isCurrentMonth = currentMonthOffset === 0;
+
+  el.monthTitle.textContent = `${dates[0].getFullYear()}年${dates[0].getMonth()+1}月`;
+  el.nextMonth.disabled = isCurrentMonth;
+
+  const firstDay = dates[0].getDay();
+  const blanks = firstDay === 0 ? 6 : firstDay - 1;
+
+  let total = 0, recorded = 0, good = 0;
+  const dailyTotals = [];
+
+  const cells = [];
+  for (let i = 0; i < blanks; i++) {
+    cells.push('<div class="cal-cell blank"></div>');
+  }
+
+  dates.forEach(d => {
+    const k = dateKey(d);
+    const dayTotalVal = dayTotal(k);
+    dailyTotals.push({ date: d, total: dayTotalVal, key: k });
+    const isToday = k === todayKey();
+
+    if (dayTotalVal > 0) {
+      total += dayTotalVal;
+      recorded++;
+      if (isGood(dayTotalVal)) good++;
+    }
+
+    const bg = cellColor(dayTotalVal);
+    const style = bg ? `background:${bg};` : '';
+    const cls = ['cal-cell', bg ? 'filled' : '', isToday ? 'today' : ''].filter(Boolean).join(' ');
+    cells.push(`<div class="${cls}" style="${style}" data-key="${k}">${d.getDate()}</div>`);
+  });
+
+  el.calGrid.innerHTML = cells.join('');
+  el.calGrid.querySelectorAll('.cal-cell:not(.blank)').forEach(cell => {
+    cell.addEventListener('click', () => openDaySheet(cell.dataset.key));
+  });
+
+  el.monthAvg.textContent = recorded ? Math.round(total / recorded) : 0;
+  el.monthGood.textContent = good;
+  el.monthRecorded.textContent = recorded;
+
+  renderTrendChart(dailyTotals, dates[dates.length - 1].getDate());
+}
+
+function renderTrendChart(daily, daysInMonth) {
+  const svgW = 320, svgH = 140, padX = 4, padTop = 12, padBottom = 12;
+  const chartH = svgH - padTop - padBottom;
+  const maxVal = Math.max(goal * 1.3, ...daily.map(d => d.total));
+  const stepX = (svgW - padX * 2) / Math.max(daysInMonth - 1, 1);
+
+  const x = i => padX + i * stepX;
+  const y = v => padTop + chartH - (v / maxVal) * chartH;
+
+  // 目标虚线
+  const goalY = y(goal);
+  const goalLine = $('goalLine');
+  goalLine.setAttribute('y1', goalY);
+  goalLine.setAttribute('y2', goalY);
+
+  // 只画有数据的天
+  const points = daily
+    .map((d, i) => ({ i, v: d.total }))
+    .filter(p => p.v > 0);
+
+  if (points.length === 0) {
+    $('trendLine').setAttribute('d', '');
+    $('trendArea').setAttribute('d', '');
+    $('trendDots').innerHTML = '';
+    $('axisMid').textContent = Math.ceil(daysInMonth / 2);
+    $('axisEnd').textContent = daysInMonth;
+    return;
+  }
+
+  // 折线
+  const lineD = points.map((p, idx) =>
+    `${idx === 0 ? 'M' : 'L'} ${x(p.i).toFixed(1)} ${y(p.v).toFixed(1)}`
+  ).join(' ');
+
+  $('trendLine').setAttribute('d', lineD);
+
+  // 面积
+  const firstX = x(points[0].i);
+  const lastX = x(points[points.length - 1].i);
+  const baseY = padTop + chartH;
+  const areaD = `${lineD} L ${lastX.toFixed(1)} ${baseY} L ${firstX.toFixed(1)} ${baseY} Z`;
+  $('trendArea').setAttribute('d', areaD);
+
+  // 点
+  const today = todayKey();
+  const dots = points.map(p => {
+    const cx = x(p.i).toFixed(1);
+    const cy = y(p.v).toFixed(1);
+    const isToday = dateKey(daily[p.i].date) === today;
+    return `<circle class="${isToday ? 'dot-today' : 'dot'}" cx="${cx}" cy="${cy}" r="${isToday ? 4 : 2.5}"/>`;
+  }).join('');
+  $('trendDots').innerHTML = dots;
+
+  $('axisMid').textContent = Math.ceil(daysInMonth / 2);
+  $('axisEnd').textContent = daysInMonth;
+}
+
+/* ==================== 详情弹层 ==================== */
+function openDaySheet(key) {
+  const all = getAllRecords();
+  const list = all[key] || [];
+  const total = list.reduce((s, r) => s + (r.kcal || 0), 0);
+
+  const [y, m, d] = key.split('-').map(Number);
+  const dateObj = new Date(y, m - 1, d);
+  const wd = ['周日','周一','周二','周三','周四','周五','周六'][dateObj.getDay()];
+  el.sheetTitle.textContent = `${m}月${d}日`;
+  el.sheetSub.textContent = `${y}年 · ${wd}`;
+
+  el.sheetTotal.style.display = 'flex';
+  el.sheetKcal.textContent = Math.round(total);
+
+  const st = statusOf(total);
+  const badge = el.sheetBadge;
+  if (st === 'good')      { badge.textContent = '达标';   badge.className = 'badge good'; }
+  else if (st === 'over') { badge.textContent = '超标';   badge.className = 'badge over'; }
+  else if (st === 'low')  { badge.textContent = '偏低';   badge.className = 'badge low'; }
+  else                    { badge.textContent = '无记录'; badge.className = 'badge none'; }
+
+  if (list.length === 0) {
+    el.sheetBody.innerHTML = '<div class="empty">这一天没有记录</div>';
+  } else {
+    el.sheetBody.innerHTML = list.map(r => `
+      <div class="meal-item">
+        <span class="name">${escapeHtml(r.name)}<span class="time">${fmtTime(r.time)}</span></span>
+        <span class="kcal">${Math.round(r.kcal)}</span>
+      </div>
+    `).join('');
+  }
+
+  el.sheetMask.classList.add('show');
+  el.sheet.classList.add('show');
+}
+
+function closeSheet() {
+  el.sheetMask.classList.remove('show');
+  el.sheet.classList.remove('show');
+}
+
+el.sheetMask.addEventListener('click', closeSheet);
+
+/* ==================== 识别 ==================== */
+// 提示词经 18 张真实中餐照片实测（见 _dev/_prompt-E-final.mjs）：
+//   菜名正确率 18/18、每张只返回一道菜、每张都给出克数估算，平均 268 tokens / 107ms。
+// 关键点：要求「菜名,克数」，并明确不要把一道菜的配料拆开——否则模型会输出
+// 「炒饭,鸡蛋,青豆,火腿肠,胡萝卜」，被当成 5 样菜各算一份，热量翻好几倍。
+const RECOGNIZE_PROMPT =
+  '识别这张图片里的食物。只返回「菜名,估算克数」，用中文逗号分隔，最多 3 项，' +
+  '把你最确信的那道菜放在第一个。不要把一道菜的配料拆开。只有一道菜时只返回一项。' +
+  '不要解释，不要编号。例如：青椒炒肉,250';
+
+async function callRecognize(base64) {
+  const { apiKey } = config;
+  const resp = await fetch('https://api.deepseek.com/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'deepseek-flash',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: RECOGNIZE_PROMPT },
+          { type: 'image_url', image_url: { url: base64, detail: 'low' } }
+        ]
+      }],
+      // deepseek-flash 默认开启思考模式且 effort=high。实测 max_tokens=100 时
+      // 100 个 token 会被思维链全部吃光，content 返回空字符串 —— 识别结果丢失。
+      // 这里是「看一眼报菜名」的简单任务，关掉思考即可，还省约 1/3 token。
+      thinking: { type: 'disabled' },
+      max_tokens: 512
+    })
+  });
+  if (!resp.ok) {
+    const t = await resp.text();
+    let msg = t.slice(0, 150);
+    try { const j = JSON.parse(t); msg = j?.error?.message || msg; } catch {}
+    throw new Error(`API ${resp.status}: ${msg}`);
+  }
+  const data = await resp.json();
+  return (data?.choices?.[0]?.message?.content || '').trim();
+}
+
+// 网络抖动/空回复重试一次，避免用户白拍一张。
+async function recognizeImage(base64) {
+  const { apiKey } = config;
+  if (!apiKey) throw new Error('请先配置 DeepSeek API Key');
+
+  let lastErr = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const text = await callRecognize(base64);
+      if (text) return text;
+      lastErr = new Error('模型返回了空结果');
+    } catch (e) {
+      lastErr = e;
+      // Key 错误重试没有意义
+      if (/401|403|Authentication/i.test(e.message)) break;
+    }
+    if (attempt === 0) await new Promise(r => setTimeout(r, 800));
+  }
+  throw lastErr || new Error('识别失败');
+}
+
+// 把「菜名,克数」解析成 [{name, grams}]。克数属于它前面的菜名，不是独立的一项。
+function parseDishes(text) {
+  const out = [];
+  if (!text) return out;
+  for (const line of text.split(/[;；\n]+/)) {
+    for (const part of line.split(/[,，](?=[^,，]*[,，])/)) {
+      const m = part.trim().match(/^(.+?)\s*[,，]?\s*(\d{2,4})\s*(?:g|克)?$/);
+      if (m) out.push({ name: m[1].trim(), grams: Number(m[2]) });
+      else if (part.trim()) out.push({ name: part.trim(), grams: null });
+    }
+  }
+  return out.filter(d => d.name);
+}
+
+function compressImage(file, maxSize = 800) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxSize) {
+          height = Math.round(height * maxSize / width); width = maxSize;
+        } else if (height > maxSize) {
+          width = Math.round(width * maxSize / height); height = maxSize;
+        }
+        const c = document.createElement('canvas');
+        c.width = width; c.height = height;
+        c.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(c.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// 先查别名表，再精确匹配，最后才做子串匹配。
+// 顺序很重要：模型给的「西红柿炒鸡蛋」若不先走别名，会被子串匹配错配成「鸡蛋」。
+function findFood(name) {
+  const clean = String(name).replace(/[\s,，、。.（）()]+/g, '').trim();
+  if (!clean) return null;
+
+  const alias = ALIASES[clean];
+  if (alias && FOOD_DB[alias]) return { key: alias, ...FOOD_DB[alias], viaAlias: clean };
+  if (FOOD_DB[clean]) return { key: clean, ...FOOD_DB[clean] };
+
+  // 去掉「炒/烧/蒸」等做法字后再试一次别名与精确匹配
+  const stripped = clean.replace(/^(清炒|爆炒|小炒|红烧|清蒸|水煮|干煸|凉拌|香煎|烤)/, '');
+  if (stripped !== clean) {
+    const a2 = ALIASES[stripped];
+    if (a2 && FOOD_DB[a2]) return { key: a2, ...FOOD_DB[a2], viaAlias: clean };
+    if (FOOD_DB[stripped]) return { key: stripped, ...FOOD_DB[stripped], viaAlias: clean };
+  }
+
+  let best = null, bestLen = 0;
+  for (const key of Object.keys(FOOD_DB)) {
+    if (clean.includes(key) || key.includes(clean)) {
+      const len = Math.min(key.length, clean.length);
+      if (len > bestLen) { best = key; bestLen = len; }
+    }
+  }
+  return best ? { key: best, ...FOOD_DB[best] } : null;
+}
+
+el.photoBtn.addEventListener('click', () => el.fileInput.click());
+
+el.fileInput.addEventListener('change', async e => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  setStatus('压缩图片…');
+  el.photoBtn.disabled = true;
+
+  try {
+    const base64 = await compressImage(file);
+    el.preview.src = base64;
+    el.preview.style.display = 'block';
+
+    setStatus('AI 识别中…');
+    const reply = await recognizeImage(base64);
+    setStatus(`识别到：${reply}`);
+
+    const dishes = parseDishes(reply);
+    let added = 0;
+    for (const dish of dishes) {
+      // 模型给了克数就用它的，没给才退回默认份量
+      const grams = dish.grams && dish.grams >= 20 && dish.grams <= 2000 ? dish.grams : PORTION_G;
+      const food = findFood(dish.name);
+      if (food) {
+        records.push({
+          name: `${food.key}（约${grams}g）`,
+          kcal: Math.round(food.kcal * grams / 100),
+          time: Date.now()
+        });
+      } else {
+        // 库里没有：按 150 kcal/100g 的通用估算，并标注出来，方便用户手动核对
+        records.push({
+          name: `${dish.name}（约${grams}g·估算）`,
+          kcal: Math.round(150 * grams / 100),
+          time: Date.now()
+        });
+      }
+      added++;
+    }
+    saveTodayRecords(records);
+    renderToday();
+    setStatus(added ? `已记录 ${added} 项` : '未识别到食物，换张更清楚的图试试');
+    setTimeout(() => { el.preview.style.display = 'none'; }, 2500);
+  } catch (err) {
+    console.error(err);
+    setStatus('出错：' + err.message, true);
+  } finally {
+    el.photoBtn.disabled = false;
+    el.fileInput.value = '';
+  }
+});
+
+/* ==================== 设置 ==================== */
+el.goalInput.addEventListener('change', () => {
+  const v = parseInt(el.goalInput.value, 10);
+  if (!isNaN(v) && v >= 500 && v <= 5000) {
+    goal = v; saveGoal(v); renderToday();
+  } else {
+    el.goalInput.value = goal;
+  }
+});
+
+el.lowInput.addEventListener('change', () => {
+  let v = parseInt(el.lowInput.value, 10);
+  if (isNaN(v) || v < 50 || v > 100) { el.lowInput.value = range.low; return; }
+  if (v >= range.high) v = range.high - 5;
+  range.low = v;
+  el.lowInput.value = v;
+  saveRange(range.low, range.high);
+});
+
+el.highInput.addEventListener('change', () => {
+  let v = parseInt(el.highInput.value, 10);
+  if (isNaN(v) || v < 100 || v > 150) { el.highInput.value = range.high; return; }
+  if (v <= range.low) v = range.low + 5;
+  range.high = v;
+  el.highInput.value = v;
+  saveRange(range.low, range.high);
+});
+
+/* ==================== 视图切换 ==================== */
+el.segmented.addEventListener('click', e => {
+  const btn = e.target.closest('button[data-view]');
+  if (!btn) return;
+  el.segmented.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+  const view = btn.dataset.view;
+  document.querySelectorAll('[data-panel]').forEach(p => {
+    p.hidden = p.dataset.panel !== view;
+  });
+  if (view === 'week')  renderWeek();
+  if (view === 'month') renderMonth();
+});
+
+/* ==================== 月份切换 ==================== */
+el.prevMonth.addEventListener('click', () => { currentMonthOffset--; renderMonth(); });
+el.nextMonth.addEventListener('click', () => {
+  if (currentMonthOffset < 0) { currentMonthOffset++; renderMonth(); }
+});
+
+/* ==================== 配置 ==================== */
+el.configToggle.addEventListener('click', () => {
+  const show = el.configPanel.hidden;
+  el.configPanel.hidden = !show;
+  el.configToggle.textContent = show ? '⚙️ 收起配置' : '⚙️ 配置 DeepSeek API';
+});
+
+el.getApiBtn.addEventListener('click', () => {
+  window.open('https://platform.deepseek.com/api_keys', '_blank');
+});
+
+el.saveConfigBtn.addEventListener('click', () => {
+  config = { apiKey: el.apiKeyInput.value.trim() };
+  saveConfig(config);
+  setStatusTemporary('配置已保存', 1500);
+});
+
+/* ==================== 初始化 ==================== */
+(function init() {
+  el.apiKeyInput.value = config.apiKey || '';
+  el.goalInput.value = goal;
+  el.lowInput.value = range.low;
+  el.highInput.value = range.high;
+  const d = new Date();
+  const wd = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+  el.dateSub.textContent = `${d.getMonth()+1}月${d.getDate()}日 · ${wd}`;
+  renderToday();
+})();
+</script>
+</body>
+</html>
