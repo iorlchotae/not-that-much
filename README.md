@@ -7,7 +7,9 @@
 
 > **在线试用**：https://iorlchotae.github.io/not-that-much/
 >
-> 首次使用请点页面底部「⚙️ 配置 DeepSeek API」，填入你自己的 Key。
+> **第一次用？看这个 → [`新手教程.md`](新手教程.md)**，三步拿到 Key，大约 3 分钟。
+> 简单说：去 [platform.deepseek.com](https://platform.deepseek.com) 充 10 元 → 建一个 API Key →
+> 粘进页面底部的「⚙️ 配置 DeepSeek API」。
 
 ## 名字的由来
 
@@ -165,6 +167,9 @@ python3 -m http.server 4173
 
 然后：页面底部「⚙️ 配置 DeepSeek API」→「🔑 去 DeepSeek 获取 API Key」→ 粘贴保存 →「📷 拍照识别」。
 
+> 详细的图文步骤（怎么注册、为什么必须充值、10 元能用多久、Key 放哪安全）
+> 都在 [`新手教程.md`](新手教程.md)。
+
 ## 使用须知
 
 - **需要联网**，且需要一个 DeepSeek API Key（[开放平台](https://platform.deepseek.com/api_keys)）。Key 由使用者自己提供，本仓库不含任何密钥。
@@ -176,6 +181,9 @@ python3 -m http.server 4173
 - 已知限制：单张照片只识别主要的一到三道菜；模型份量估算有时偏大；中餐混合菜的识别准确度会波动。
 
 ## 授权与声明
+
+本项目采用 **MIT 许可证**（见 [`LICENSE`](LICENSE)）—— 你可以自由使用、修改、再发布，
+包括商用，只要保留版权声明。
 
 本项目与 DeepSeek 官方无关，仅调用其公开 API。
 食物热量数据为公开常识范围内的粗略估算值，仅供参考，不构成营养或医疗建议。

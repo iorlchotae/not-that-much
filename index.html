@@ -452,6 +452,12 @@
   }
   .config-area input:focus { outline: 1px solid var(--accent); }
   .config-hint { font-size: 12px; color: var(--text-3); margin-top: 10px; line-height: 1.6; }
+  /* 配置面板里的三步说明：这是全流程唯一的门槛，写在用户卡住的地方 */
+  .config-steps {
+    margin: 0 0 16px; padding-left: 19px;
+    font-size: 13px; color: var(--text-2); line-height: 1.8;
+  }
+  .config-steps b { color: var(--text); font-weight: 600; }
 
   [hidden] { display: none !important; }
 </style>
@@ -621,11 +627,17 @@
   <div class="card config-area">
     <button class="toggle" id="configToggle">⚙️ 配置 DeepSeek API</button>
     <div id="configPanel" hidden>
+      <ol class="config-steps">
+        <li>打开 <b>platform.deepseek.com</b>，注册并登录</li>
+        <li><b>先充值</b> —— API 没有免费额度，不充值第一次识别就会失败</li>
+        <li>进「API keys」点创建，复制 <b>sk-</b> 开头那串，粘到下面</li>
+      </ol>
       <label>DeepSeek API Key
         <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxx" autocomplete="off">
       </label>
       <div class="config-hint">
-        数据保存在本机浏览器，不会上传。不知道如何获取？点击下方按钮。
+        Key 只存在你这台手机里，不会上传 —— 这个 App 没有服务器。
+        每次识别由 DeepSeek 按量计费，实测约 268 tokens／次，充 10 元够用很久。
       </div>
       <button class="btn btn-ghost" id="getApiBtn" style="margin-top: 14px;">
         🔑 去 DeepSeek 获取 API Key
