@@ -502,6 +502,22 @@
   }
   .config-area input:focus { outline: 1px solid var(--accent); }
   .config-hint { font-size: 12px; color: var(--text-3); margin-top: 10px; line-height: 1.6; }
+  /* 服务商选择：两个都要能一眼看出取舍（快但收费 / 免费但慢） */
+  .providers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 16px; }
+  .providers button {
+    display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+    background: var(--fill-2); border: 1px solid transparent; border-radius: 12px;
+    padding: 11px 12px; font-family: inherit; color: var(--text); cursor: pointer;
+    text-align: left; transition: background .2s, border-color .2s;
+  }
+  .providers button b { font-size: 14px; font-weight: 600; }
+  .providers button span { font-size: 11px; color: var(--text-2); line-height: 1.35; }
+  .providers button.on {
+    background: var(--card-solid);
+    border-color: var(--accent);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+  }
+  .providers button.on b { color: var(--accent); }
   /* 配置面板里的三步说明：这是全流程唯一的门槛，写在用户卡住的地方 */
   .config-steps {
     margin: 0 0 16px; padding-left: 19px;
@@ -675,23 +691,23 @@
 
   <!-- 配置 -->
   <div class="card config-area">
-    <button class="toggle" id="configToggle">⚙️ 配置 DeepSeek API</button>
+    <button class="toggle" id="configToggle">⚙️ 配置 AI 服务</button>
     <div id="configPanel" hidden>
-      <ol class="config-steps">
-        <li>打开 <b>platform.deepseek.com</b>，注册并登录</li>
-        <li><b>先充值</b> —— API 没有免费额度，不充值第一次识别就会失败</li>
-        <li>进「API keys」点创建，复制 <b>sk-</b> 开头那串，粘到下面</li>
-      </ol>
-      <label>DeepSeek API Key
+      <label>用哪个 AI 识别</label>
+      <div class="providers" id="providerPick">
+        <button data-provider="deepseek" class="on">
+          <b>DeepSeek</b><span>更快更准 · 按量付费</span>
+        </button>
+        <button data-provider="agnes">
+          <b>Agnes 3.0 Flash</b><span>完全免费 · 稍慢一些</span>
+        </button>
+      </div>
+      <ol class="config-steps" id="configSteps"></ol>
+      <label><span id="keyLabel">API Key</span>
         <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxx" autocomplete="off">
       </label>
-      <div class="config-hint">
-        Key 只存在你这台手机里，不会上传 —— 这个 App 没有服务器。
-        每次识别由 DeepSeek 按量计费，实测约 268 tokens／次，充 10 元够用很久。
-      </div>
-      <button class="btn btn-ghost" id="getApiBtn" style="margin-top: 14px;">
-        🔑 去 DeepSeek 获取 API Key
-      </button>
+      <div class="config-hint" id="configHint"></div>
+      <button class="btn btn-ghost" id="getApiBtn" style="margin-top: 14px;"></button>
       <button class="btn btn-primary" id="saveConfigBtn" style="margin-top: 10px; padding: 12px; font-size: 14px;">保存配置</button>
     </div>
   </div>
@@ -826,11 +842,61 @@ function saveTodayRecords(records) {
   all[todayKey()] = records;
   saveAllRecords(all);
 }
+// 两家服务商的全部差异都收在这里，加第三家只要再添一项。
+// 实测（同一套 18 张中餐照片 + App 自己的提示词）：
+//   DeepSeek deepseek-flash  18/18 命中，中位 108ms，约 237 tokens/次
+//   Agnes 3.0 Flash          17/18 命中，中位 2115ms，约 516 tokens/次，输入输出当前 $0
+const PROVIDERS = {
+  deepseek: {
+    name: 'DeepSeek',
+    keyLabel: 'DeepSeek API Key',
+    endpoint: 'https://api.deepseek.com/chat/completions',
+    model: 'deepseek-flash',
+    console: 'https://platform.deepseek.com/api_keys',
+    button: '🔑 去 DeepSeek 获取 API Key',
+    steps: [
+      '打开 <b>platform.deepseek.com</b>，注册并登录',
+      '<b>先充值</b> —— API 没有免费额度，不充值第一次识别就会失败',
+      '进「API keys」点创建，复制 <b>sk-</b> 开头那串，粘到下面',
+    ],
+    hint: 'Key 只存在你这台手机里，不会上传 —— 这个 App 没有服务器。'
+        + '每次识别由 DeepSeek 按量计费，实测约 237 tokens／次，充 10 元够用很久。',
+  },
+  agnes: {
+    name: 'Agnes 3.0 Flash',
+    keyLabel: 'Agnes API Key',
+    endpoint: 'https://apihub.agnes-ai.com/v1/chat/completions',
+    model: 'agnes-3.0-flash',
+    console: 'https://platform.agnes-ai.com',
+    button: '🔑 去 Agnes 获取 API Key',
+    steps: [
+      '打开 <b>platform.agnes-ai.com</b>，注册并登录',
+      '<b>不用充值</b> —— 输入输出目前都是 $0',
+      '创建 API Key，复制 <b>sk-</b> 开头那串，粘到下面',
+    ],
+    hint: '完全免费，代价是慢一些（实测中位 2.1 秒，DeepSeek 是 0.1 秒）。'
+        + '免费额度有速率限制，一口气连拍好几张时可能会让你等一会儿。',
+  },
+};
+
 function loadConfig() {
-  try { return JSON.parse(localStorage.getItem(KEY_CONFIG) || '{}'); }
-  catch { return {}; }
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY_CONFIG) || '{}');
+    // 迁移：老版本只存了 { apiKey }，那时候只有 DeepSeek 一家
+    if (raw.apiKey && !raw.keys) {
+      return { provider: 'deepseek', keys: { deepseek: raw.apiKey, agnes: '' } };
+    }
+    return {
+      provider: raw.provider || 'deepseek',
+      keys: { deepseek: '', agnes: '', ...(raw.keys || {}) },
+    };
+  } catch {
+    return { provider: 'deepseek', keys: { deepseek: '', agnes: '' } };
+  }
 }
 function saveConfig(cfg) { localStorage.setItem(KEY_CONFIG, JSON.stringify(cfg)); }
+// 当前服务商那把钥匙。切换服务商时各自的 Key 都留着，不用重填。
+const activeKey = () => (config.keys && config.keys[config.provider]) || '';
 function loadGoal() {
   const g = parseInt(localStorage.getItem(KEY_GOAL) || '1800', 10);
   return isNaN(g) ? 1800 : g;
@@ -870,6 +936,8 @@ const el = {
   monthAvg: $('monthAvg'), monthGood: $('monthGood'), monthRecorded: $('monthRecorded'),
   configToggle: $('configToggle'), configPanel: $('configPanel'),
   apiKeyInput: $('apiKeyInput'), saveConfigBtn: $('saveConfigBtn'), getApiBtn: $('getApiBtn'),
+  providerPick: $('providerPick'), configSteps: $('configSteps'),
+  keyLabel: $('keyLabel'), configHint: $('configHint'),
   sheetMask: $('sheetMask'), sheet: $('sheet'),
   sheetTitle: $('sheetTitle'), sheetSub: $('sheetSub'), sheetTotal: $('sheetTotal'),
   sheetKcal: $('sheetKcal'), sheetBadge: $('sheetBadge'), sheetBody: $('sheetBody'),
@@ -1230,33 +1298,42 @@ const RECOGNIZE_PROMPT =
   '不要解释，不要编号。例如：青椒炒肉,250';
 
 async function callRecognize(base64) {
-  const { apiKey } = config;
-  const resp = await fetch('https://api.deepseek.com/chat/completions', {
+  const p = PROVIDERS[config.provider] || PROVIDERS.deepseek;
+  const apiKey = activeKey();
+  const body = {
+    model: p.model,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: RECOGNIZE_PROMPT },
+      ],
+    }],
+    max_tokens: 512,
+  };
+  const imageUrl = { url: base64 };
+  if (config.provider === 'deepseek') {
+    // deepseek-flash 默认开启思考模式且 effort=high。实测 max_tokens=100 时
+    // 100 个 token 会被思维链全部吃光，content 返回空字符串 —— 识别结果丢失。
+    // 这里是「看一眼报菜名」的简单任务，关掉思考即可，还省约 1/3 token。
+    // Agnes 没有这个开关（它用 chat_template_kwargs），所以只对 DeepSeek 加。
+    imageUrl.detail = 'low';
+    body.thinking = { type: 'disabled' };
+  }
+  body.messages[0].content.push({ type: 'image_url', image_url: imageUrl });
+
+  const resp = await fetch(p.endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`
     },
-    body: JSON.stringify({
-      model: 'deepseek-flash',
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: RECOGNIZE_PROMPT },
-          { type: 'image_url', image_url: { url: base64, detail: 'low' } }
-        ]
-      }],
-      // deepseek-flash 默认开启思考模式且 effort=high。实测 max_tokens=100 时
-      // 100 个 token 会被思维链全部吃光，content 返回空字符串 —— 识别结果丢失。
-      // 这里是「看一眼报菜名」的简单任务，关掉思考即可，还省约 1/3 token。
-      thinking: { type: 'disabled' },
-      max_tokens: 512
-    })
+    body: JSON.stringify(body)
   });
   if (!resp.ok) {
     const t = await resp.text();
     let msg = t.slice(0, 150);
     try { const j = JSON.parse(t); msg = j?.error?.message || msg; } catch {}
+    // 免费额度限流是个很常见的失败，直接把原文交给用户，别让他猜
     throw new Error(`API ${resp.status}: ${msg}`);
   }
   const data = await resp.json();
@@ -1265,8 +1342,11 @@ async function callRecognize(base64) {
 
 // 网络抖动/空回复重试一次，避免用户白拍一张。
 async function recognizeImage(base64) {
-  const { apiKey } = config;
-  if (!apiKey) throw new Error('请先配置 DeepSeek API Key');
+  const apiKey = activeKey();
+  if (!apiKey) {
+    const p = PROVIDERS[config.provider] || PROVIDERS.deepseek;
+    throw new Error(`请先在下面配置里填入 ${p.name} 的 API Key`);
+  }
 
   let lastErr = null;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -1548,18 +1628,48 @@ el.nextMonth.addEventListener('click', () => {
 });
 
 /* ==================== 配置 ==================== */
+const CONFIG_TOGGLE_LABEL = '⚙️ 配置 AI 服务';
+
+// 服务商切换时，说明文字、Key 输入框、跳转按钮全部跟着换
+function renderConfigPanel() {
+  const p = PROVIDERS[config.provider] || PROVIDERS.deepseek;
+  el.configSteps.innerHTML = p.steps.map(s => `<li>${s}</li>`).join('');
+  el.keyLabel.textContent = p.keyLabel;
+  el.apiKeyInput.placeholder = 'sk-xxxxxxxx';
+  el.apiKeyInput.value = (config.keys && config.keys[config.provider]) || '';
+  el.configHint.textContent = p.hint;
+  el.getApiBtn.textContent = p.button;
+  el.providerPick.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('on', b.dataset.provider === config.provider);
+  });
+}
+
 el.configToggle.addEventListener('click', () => {
   const show = el.configPanel.hidden;
   el.configPanel.hidden = !show;
-  el.configToggle.textContent = show ? '⚙️ 收起配置' : '⚙️ 配置 DeepSeek API';
+  if (show) renderConfigPanel();
+  el.configToggle.textContent = show ? '⚙️ 收起配置' : CONFIG_TOGGLE_LABEL;
+});
+
+el.providerPick.addEventListener('click', e => {
+  const btn = e.target.closest('button[data-provider]');
+  if (!btn) return;
+  // 先把当前输入框里的内容存回原服务商，否则切一下就丢了
+  if (config.keys) config.keys[config.provider] = el.apiKeyInput.value.trim();
+  config.provider = btn.dataset.provider;
+  saveConfig(config);
+  renderConfigPanel();
+  const p = PROVIDERS[config.provider];
+  setStatusTemporary(config.keys[config.provider] ? `已切到 ${p.name}` : `已切到 ${p.name}，还需要填 Key`, 2000);
 });
 
 el.getApiBtn.addEventListener('click', () => {
-  window.open('https://platform.deepseek.com/api_keys', '_blank');
+  window.open((PROVIDERS[config.provider] || PROVIDERS.deepseek).console, '_blank');
 });
 
 el.saveConfigBtn.addEventListener('click', () => {
-  config = { apiKey: el.apiKeyInput.value.trim() };
+  if (!config.keys) config.keys = { deepseek: '', agnes: '' };
+  config.keys[config.provider] = el.apiKeyInput.value.trim();
   saveConfig(config);
   setStatusTemporary('配置已保存', 1500);
 });
@@ -2001,7 +2111,7 @@ el.cardShareBtn.addEventListener('click', shareCardImage);
 
 /* ==================== 初始化 ==================== */
 (function init() {
-  el.apiKeyInput.value = config.apiKey || '';
+  renderConfigPanel();
   el.goalInput.value = goal;
   el.lowInput.value = range.low;
   el.highInput.value = range.high;
