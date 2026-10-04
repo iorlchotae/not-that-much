@@ -257,6 +257,44 @@
   }
   .empty { text-align: center; color: var(--text-3); font-size: 14px; padding: 24px 0; }
 
+  /* ---- 识别结果确认：克数可改，应对多人餐和没吃完 ---- */
+  .review-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 0; border-bottom: 0.5px solid var(--border);
+  }
+  .review-row:last-child { border-bottom: none; }
+  .review-row .nm {
+    flex: 1; font-size: 15px; min-width: 0; letter-spacing: -0.01em;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .review-row input {
+    width: 68px; background: var(--fill-2); border: none; border-radius: 9px;
+    color: var(--text); padding: 8px 6px; font-size: 15px; text-align: center;
+    font-family: inherit; font-variant-numeric: tabular-nums; font-weight: 600;
+  }
+  .review-row input:focus { outline: 1px solid var(--accent); }
+  .review-row .unit { font-size: 12px; color: var(--text-2); }
+  .review-row .kc {
+    width: 72px; text-align: right; font-size: 14px; font-weight: 600;
+    color: var(--accent); font-variant-numeric: tabular-nums;
+  }
+  .review-row .del {
+    background: none; border: none; color: var(--text-3);
+    font-size: 19px; padding: 0 0 0 6px; cursor: pointer;
+    line-height: 1; font-family: inherit;
+  }
+  .ratio {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-top: 18px; font-size: 13px; color: var(--text-2);
+  }
+  .ratio button {
+    background: var(--fill-2); border: none; color: var(--text);
+    border-radius: 9px; padding: 7px 13px; font-size: 13px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+  }
+  .ratio button:active { opacity: 0.65; }
+  .review-empty { text-align: center; color: var(--text-3); font-size: 14px; padding: 22px 0; }
+
   .hero-stat { text-align: center; padding: 8px 0 20px; position: relative; }
   .hero-stat .big {
     font-size: 44px; font-weight: 700; letter-spacing: -0.04em;
@@ -682,6 +720,22 @@
   <button class="btn btn-ghost" id="cardShareBtn" style="margin-top:10px;">分享</button>
 </div>
 
+<div class="sheet-mask" id="reviewMask"></div>
+<div class="sheet" id="reviewSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">确认一下份量</div>
+  <div class="sheet-sub">AI 报的是整份的量。多人吃、或者没吃完，把克数改成你实际吃掉的。</div>
+  <div id="reviewList"></div>
+  <div class="ratio">
+    <span>按吃掉的算：</span>
+    <button data-ratio="1">整份</button>
+    <button data-ratio="0.5">一半</button>
+    <button data-ratio="0.33">三分之一</button>
+  </div>
+  <button class="btn btn-primary" id="reviewSaveBtn" style="margin-top:16px;">保存</button>
+  <button class="btn btn-ghost" id="reviewCancelBtn" style="margin-top:10px;padding:12px;font-size:14px;">取消</button>
+</div>
+
 <script>
 /* ==================== 食物库 ==================== */
 // 数值为「每 100g 热量（kcal）」，是常见做法的粗略值。减肥场景看趋势即可，不追求实验室精度。
@@ -823,6 +877,8 @@ const el = {
   cardCanvas: $('cardCanvas'), cardSaveBtn: $('cardSaveBtn'), cardShareBtn: $('cardShareBtn'),
   hCat: $('hCat'), ringCat: $('ringCat'), catSay: $('catSay'),
   catPeek: $('catPeek'), peekCat: $('peekCat'), peekSay: $('peekSay'),
+  reviewMask: $('reviewMask'), reviewSheet: $('reviewSheet'), reviewList: $('reviewList'),
+  reviewSaveBtn: $('reviewSaveBtn'), reviewCancelBtn: $('reviewCancelBtn'),
 };
 
 const R = 51;
@@ -868,6 +924,14 @@ function fmtTime(ts) {
   const d = new Date(ts);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+// 记录里克数原本是拼进 name 字符串的（"米饭（约232g）"），没法单独改。
+// 新记录把 grams / per100 存成独立字段；这里对两种格式都给出同一个显示名，
+// 所以老记录（存在 localStorage 里的）不会显示错。
+function dishLabel(r) {
+  if (r.grams && r.per100) return `${r.name}（约${Math.round(r.grams)}g）`;
+  return String(r.name);
+}
 function dayTotal(key) {
   const all = getAllRecords();
   return (all[key] || []).reduce((s, r) => s + (r.kcal || 0), 0);
@@ -905,7 +969,7 @@ function renderToday() {
     el.mealList.innerHTML = records
       .map((r, i) => `
         <div class="meal-item">
-          <span class="name">${escapeHtml(r.name)}<span class="time">${fmtTime(r.time)}</span></span>
+          <span class="name">${escapeHtml(dishLabel(r))}<span class="time">${fmtTime(r.time)}</span></span>
           <span class="kcal">${Math.round(r.kcal)}</span>
           <button class="del" data-idx="${i}" aria-label="删除">×</button>
         </div>`)
@@ -1138,7 +1202,7 @@ function openDaySheet(key) {
   } else {
     el.sheetBody.innerHTML = list.map(r => `
       <div class="meal-item">
-        <span class="name">${escapeHtml(r.name)}<span class="time">${fmtTime(r.time)}</span></span>
+        <span class="name">${escapeHtml(dishLabel(r))}<span class="time">${fmtTime(r.time)}</span></span>
         <span class="kcal">${Math.round(r.kcal)}</span>
       </div>
     `).join('');
@@ -1297,6 +1361,94 @@ function showCatPeek(expr, say) {
 }
 function hideCatPeek() { el.catPeek.hidden = true; }
 
+/* ==================== 识别结果复核 ==================== */
+// AI 报的是「整份」的量。多人合吃或者没吃完时，克数得能改，所以识别完不再直接入库，
+// 先弹这一层让用户核对实际吃掉的量。
+let pendingDishes = [];
+const PER100_FALLBACK = 150;   // 食物库里没有的菜，按通用值估
+
+function openReview() {
+  renderReview();
+  el.reviewMask.classList.add('show');
+  el.reviewSheet.classList.add('show');
+}
+function closeReview() {
+  el.reviewMask.classList.remove('show');
+  el.reviewSheet.classList.remove('show');
+  pendingDishes = [];
+}
+function renderReview() {
+  if (!pendingDishes.length) {
+    el.reviewList.innerHTML = '<div class="review-empty">没认出什么，换张更清楚的图试试</div>';
+    el.reviewSaveBtn.disabled = true;
+    return;
+  }
+  el.reviewSaveBtn.disabled = false;
+  el.reviewList.innerHTML = pendingDishes.map((d, i) => `
+    <div class="review-row">
+      <span class="nm">${escapeHtml(d.name)}</span>
+      <input type="number" inputmode="numeric" min="1" max="3000"
+             value="${Math.round(d.grams)}" data-idx="${i}" aria-label="克数">
+      <span class="unit">g</span>
+      <span class="kc">${Math.round(d.per100 * d.grams / 100)}</span>
+      <button class="del" data-del="${i}" aria-label="删除">×</button>
+    </div>`).join('');
+
+  el.reviewList.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const i = parseInt(inp.dataset.idx, 10);
+      const v = Math.max(1, Math.min(3000, parseInt(inp.value, 10) || 1));
+      pendingDishes[i].grams = v;
+      pendingDishes[i].base = v;      // 手改之后，比例按钮以新值为基准
+      inp.closest('.review-row').querySelector('.kc').textContent =
+        Math.round(pendingDishes[i].per100 * v / 100);
+    });
+    inp.addEventListener('blur', () => {
+      inp.value = Math.round(pendingDishes[parseInt(inp.dataset.idx, 10)].grams);
+    });
+  });
+  el.reviewList.querySelectorAll('.del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pendingDishes.splice(parseInt(btn.dataset.del, 10), 1);
+      renderReview();
+    });
+  });
+}
+// 按比例缩放。以 base 为基准而不是当前值，否则连点两次「一半」会变成四分之一。
+function scaleReview(ratio) {
+  pendingDishes.forEach(d => { d.grams = Math.max(1, Math.round((d.base || d.grams) * ratio)); });
+  renderReview();
+}
+
+el.reviewSheet.addEventListener('click', e => {
+  const btn = e.target.closest('[data-ratio]');
+  if (btn) scaleReview(parseFloat(btn.dataset.ratio));
+});
+el.reviewSaveBtn.addEventListener('click', () => {
+  const now = Date.now();
+  let n = 0;
+  pendingDishes.forEach((d, i) => {
+    if (!(d.grams > 0)) return;
+    records.push({
+      name: d.name,
+      grams: Math.round(d.grams),
+      per100: d.per100,
+      kcal: Math.round(d.per100 * d.grams / 100),
+      time: now + i,
+    });
+    n++;
+  });
+  saveTodayRecords(records);
+  renderToday();
+  closeReview();
+  const st = currentCatState();
+  showCatPeek(st.expr, st.line);
+  setStatus(`已记录 ${n} 项`);
+  setTimeout(hideCatPeek, 4200);
+});
+el.reviewCancelBtn.addEventListener('click', closeReview);
+el.reviewMask.addEventListener('click', closeReview);
+
 el.fileInput.addEventListener('change', async e => {
   const file = e.target.files?.[0];
   if (!file) return;
@@ -1315,34 +1467,28 @@ el.fileInput.addEventListener('change', async e => {
     setStatus(`识别到：${reply}`);
 
     const dishes = parseDishes(reply);
-    let added = 0;
-    for (const dish of dishes) {
-      // 模型给了克数就用它的，没给才退回默认份量
-      const grams = dish.grams && dish.grams >= 20 && dish.grams <= 2000 ? dish.grams : PORTION_G;
-      const food = findFood(dish.name);
-      if (food) {
-        records.push({
-          name: `${food.key}（约${grams}g）`,
-          kcal: Math.round(food.kcal * grams / 100),
-          time: Date.now()
-        });
-      } else {
-        // 库里没有：按 150 kcal/100g 的通用估算，并标注出来，方便用户手动核对
-        records.push({
-          name: `${dish.name}（约${grams}g·估算）`,
-          kcal: Math.round(150 * grams / 100),
-          time: Date.now()
-        });
-      }
-      added++;
+    // 先攒成待确认的清单，不直接入库 —— 用户可能在合吃或没吃完
+    pendingDishes = dishes.map(d => {
+      const grams = d.grams && d.grams >= 20 && d.grams <= 2000 ? d.grams : PORTION_G;
+      const food = findFood(d.name);
+      return {
+        name: food ? food.key : d.name,
+        grams,
+        base: grams,
+        per100: food ? food.kcal : PER100_FALLBACK,
+        known: !!food,
+      };
+    });
+    if (pendingDishes.length) {
+      openReview();
+      setStatus(`识别到 ${pendingDishes.length} 样，确认一下份量`);
+      setTimeout(() => { el.preview.style.display = 'none'; }, 2500);
+      setTimeout(hideCatPeek, 4200);
+    } else {
+      setStatus('未识别到食物，换张更清楚的图试试');
+      setTimeout(() => { el.preview.style.display = 'none'; }, 2500);
+      setTimeout(hideCatPeek, 4200);
     }
-    saveTodayRecords(records);
-    renderToday();
-    const st = currentCatState();
-    showCatPeek(st.expr, st.line);
-    setStatus(added ? `已记录 ${added} 项` : '未识别到食物，换张更清楚的图试试');
-    setTimeout(() => { el.preview.style.display = 'none'; }, 2500);
-    setTimeout(hideCatPeek, 4200);
   } catch (err) {
     console.error(err);
     showCatPeek('sad', '这个…我没看清');
