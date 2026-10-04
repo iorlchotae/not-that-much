@@ -11,8 +11,8 @@ own browser.
 > **Live demo**: https://iorlchotae.github.io/not-that-much/
 >
 > **First time? Start here → [`新手教程.md`](新手教程.md)** (Chinese, ~3 minutes).
-> There are two paths: one that is **completely free**, and one that is faster and more
-> accurate but needs a ¥10 top-up. The guide covers both.
+> It walks you through connecting the app to an AI service, and **one of the options is
+> free**.
 
 ![Today view](assets/preview-today.png)
 
@@ -140,10 +140,10 @@ The three states, as rendered:
 ## How it works
 
 ```
-photo → canvas downscale to 800px long edge / JPEG q0.8 → base64
-      → POST to the chosen AI provider (OpenAI-compatible chat/completions)
+photo → downscaled to 800px on the long edge
+      → handed to the AI for recognition
       → returns "dish,grams" → alias normalisation → local FOOD_DB (97 entries, kcal per 100g)
-      → add to today's intake → localStorage
+      → add to today's intake → stored on device
       → render the share card (Canvas 2D)
 ```
 
@@ -153,7 +153,7 @@ adding a dish or rewording a line means editing the relevant constant.
 
 ## Running locally
 
-Opening `index.html` in a browser is enough (`localStorage` works over `file://`).
+Opening `index.html` in a browser is enough — no server needed, data lives in the browser.
 If you'd rather serve it:
 
 ```bash
@@ -161,34 +161,17 @@ python3 -m http.server 4173
 # open http://127.0.0.1:4173
 ```
 
-Then: 「⚙️ 配置 AI 服务」 at the bottom of the page → pick a provider → paste an API key
-→ 「📷 拍照识别」.
+Then follow the in-app prompt at the bottom of the page to connect an AI service, and
+you can start shooting.
 
-> Step-by-step instructions (signing up, opening the free account, where to keep the key)
-> are in [`新手教程.md`](新手教程.md) (Chinese).
+> Step-by-step instructions are in [`新手教程.md`](新手教程.md) (Chinese).
 
 ## Good to know
 
-- **It needs a network connection**, and an API key from one of two providers. You supply
-  the key; this repository contains none.
-
-  | | [Agnes 3.0 Flash](https://platform.agnes-ai.com) | [DeepSeek](https://platform.deepseek.com/api_keys) |
-  | --- | --- | --- |
-  | Cost | **Free** (input and output are currently $0) | ¥10 top-up to start |
-  | Accuracy | 17/18 | 18/18 |
-  | Median latency | 2115 ms | 108 ms |
-  | Tokens per image | 516 | 237 |
-
-  Measured on the same 18 Chinese-dish photos, with the same prompt and the same food
-  database. Agnes is free but rate-limits: several photos in quick succession will ask
-  you to wait. Both are far quicker than typing it in by hand. Switch providers in the
-  app's settings; each provider's key is remembered separately.
-
-- **The API key is stored in your browser's `localStorage`** in plain text. That's the
-  trade-off of a pure front-end app: fine for personal use, but anyone you share it with
-  has to enter their own key. Don't save one on a shared computer.
-- **Photos are uploaded to the AI provider you choose** for recognition. The food log
-  itself never leaves your device. Share cards are only exported when you ask.
+- **It needs a network connection.** Before first use you connect it to an AI service;
+  [`新手教程.md`](新手教程.md) walks you through that, and **one of the options is free**.
+- **Photos are sent to the AI service you choose** so it can name the dishes. The food
+  log itself never leaves your device. Share cards are only exported when you ask.
 - **The calories are estimates.** The model guesses portion sizes, and the database holds
   typical values per 100g — the same dish varies enormously by recipe (300–500 kcal/100g
   for braised pork is all defensible). This tool is for **spotting trends**, not for
@@ -201,6 +184,6 @@ Then: 「⚙️ 配置 AI 服务」 at the bottom of the page → pick a provide
 **MIT** (see [`LICENSE`](LICENSE)) — use it, change it, redistribute it, including
 commercially, as long as you keep the copyright notice.
 
-This project is not affiliated with DeepSeek or Agnes; it only calls their public APIs.
+This project is not affiliated with the AI service providers it calls.
 The calorie figures are rough estimates within common public knowledge, offered for
 reference only. They are not nutritional or medical advice.
