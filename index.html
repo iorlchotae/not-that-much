@@ -526,6 +526,18 @@
     font-size: 13px; color: var(--text-2); line-height: 1.8;
   }
   .config-steps b { color: var(--text); font-weight: 600; }
+  /* 高级设置默认折叠：接口地址和模型名绝大多数人不用碰，
+     但模型名过期、或者要接一家没有预设的接口时，必须能改 */
+  #advancedBox { margin-top: 14px; }
+  #advancedBox summary {
+    font-size: 12px; color: var(--accent); font-weight: 500;
+    cursor: pointer; list-style: none; padding: 2px 0; outline: none;
+  }
+  #advancedBox summary::-webkit-details-marker { display: none; }
+  #advancedBox summary::before { content: '▸ '; font-size: 10px; }
+  #advancedBox[open] summary::before { content: '▾ '; }
+  #advancedBox input { font-size: 12px; }
+  .advanced-note { font-size: 11px; color: var(--text-3); margin-top: 8px; line-height: 1.55; }
 
   [hidden] { display: none !important; }
 </style>
@@ -696,18 +708,26 @@
     <button class="toggle" id="configToggle">⚙️ 配置 AI 服务</button>
     <div id="configPanel" hidden>
       <label>用哪个 AI 识别</label>
-      <div class="providers" id="providerPick">
-        <button data-provider="deepseek" class="on">
-          <b>DeepSeek</b><span>更快更准 · 按量付费</span>
-        </button>
-        <button data-provider="agnes">
-          <b>Agnes 3.0 Flash</b><span>完全免费 · 稍慢一些</span>
-        </button>
-      </div>
+      <!-- 按钮由 renderConfigPanel() 从 PROVIDERS 生成：加一家只要改那一处 -->
+      <div class="providers" id="providerPick"></div>
       <ol class="config-steps" id="configSteps"></ol>
       <label><span id="keyLabel">API Key</span>
         <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxx" autocomplete="off">
       </label>
+      <details id="advancedBox">
+        <summary>高级设置 · 接口地址与模型</summary>
+        <label><span>接口地址</span>
+          <input type="text" id="endpointInput" placeholder="https://…/v1/chat/completions"
+                 autocomplete="off" spellcheck="false">
+        </label>
+        <label><span>模型名</span>
+          <input type="text" id="modelInput" placeholder="例如 glm-4v-flash"
+                 autocomplete="off" spellcheck="false">
+        </label>
+        <div class="advanced-note">
+          默认已经填好，通常不用动。换模型、或模型名过期时报错，改这里就行。
+        </div>
+      </details>
       <div class="config-hint" id="configHint"></div>
       <button class="btn btn-ghost" id="getApiBtn" style="margin-top: 14px;"></button>
       <button class="btn btn-primary" id="saveConfigBtn" style="margin-top: 10px; padding: 12px; font-size: 14px;">保存配置</button>
@@ -848,10 +868,23 @@ function saveTodayRecords(records) {
 // 实测（同一套 18 张中餐照片 + App 自己的提示词）：
 //   DeepSeek deepseek-flash  18/18 命中，中位 108ms，约 237 tokens/次
 //   Agnes 3.0 Flash          17/18 命中，中位 2115ms，约 516 tokens/次，输入输出当前 $0
+// 加一家服务商，只需要在这里加一项。
+//
+// 关于「哪些能用」的一条硬约束：这个 App 没有服务器，所以**对方接口必须允许浏览器
+// 跨域（CORS）**，否则请求发得出去、响应读不到。下面每一项都从真实部署的页面上实测过
+// （`_dev/_probe-providers.mjs`），返回 401 = 接口存在且跨域通过。
+//
+// 实测被跨域挡在门外、因此**没有收录**的（别加，加了也是坏的）：
+//   豆包 / 火山方舟 ark.cn-beijing.volces.com —— 预检通过，但它所有 POST 响应都不带
+//     Access-Control-Allow-Origin（连 404 都不带），换任何 Key 都一样
+//   小米 api.xiaomi.com —— 域名不解析，没有找到公开的 OpenAI 兼容接口
+//   OpenCode Zen —— 该路径返回 HTML 404，不是 OpenAI 兼容接口
+//   Z.ai 国际版 api.z.ai —— POST 带 CORS 头，但预检不带，而带 Authorization 就必然触发预检
+// 想用这几家，只能自建一个转发（反向代理），然后把代理地址填进「自定义」。
 const PROVIDERS = {
   deepseek: {
     name: 'DeepSeek',
-    keyLabel: 'DeepSeek API Key',
+    tag: '最快最准',
     endpoint: 'https://api.deepseek.com/chat/completions',
     model: 'deepseek-flash',
     console: 'https://platform.deepseek.com/api_keys',
@@ -861,12 +894,15 @@ const PROVIDERS = {
       '<b>先充值</b> —— API 没有免费额度，不充值第一次识别就会失败',
       '进「API keys」点创建，复制 <b>sk-</b> 开头那串，粘到下面',
     ],
-    hint: 'Key 只存在你这台手机里，不会上传 —— 这个 App 没有服务器。'
-        + '每次识别由 DeepSeek 按量计费，实测约 237 tokens／次，充 10 元够用很久。',
+    hint: '每次识别按量计费，实测约 237 tokens／次，充 10 元够用很久。'
+        + '目前是实测最快也最准的一家。',
+    // deepseek-flash 默认开思考模式，识图这种简单任务会被思维链吃光 token 导致空回复
+    disableThinking: true,
+    detailLow: true,
   },
   agnes: {
     name: 'Agnes 3.0 Flash',
-    keyLabel: 'Agnes API Key',
+    tag: '完全免费',
     endpoint: 'https://apihub.agnes-ai.com/v1/chat/completions',
     model: 'agnes-3.0-flash',
     console: 'https://platform.agnes-ai.com',
@@ -876,29 +912,133 @@ const PROVIDERS = {
       '<b>不用充值</b> —— 输入输出目前都是 $0',
       '创建 API Key，复制 <b>sk-</b> 开头那串，粘到下面',
     ],
-    hint: '完全免费，代价是慢一些（实测中位 2.1 秒，DeepSeek 是 0.1 秒）。'
-        + '免费额度有速率限制，一口气连拍好几张时可能会让你等一会儿。',
+    hint: '目前完全免费。代价是慢一些，而且免费额度有速率限制，'
+        + '一口气连拍好几张时可能会让你等一会儿。',
+  },
+  kimi: {
+    name: 'KIMI（月之暗面）',
+    tag: '长文本见长',
+    endpoint: 'https://api.moonshot.cn/v1/chat/completions',
+    model: 'moonshot-v1-8k-vision-preview',
+    console: 'https://platform.moonshot.cn/console/api-keys',
+    button: '🔑 去 Moonshot 获取 API Key',
+    steps: [
+      '打开 <b>platform.moonshot.cn</b>，注册并登录',
+      '新账号一般有赠送额度，够试很久',
+      '进「API Key 管理」创建，复制 <b>sk-</b> 开头那串',
+    ],
+    hint: '要选带 <b>vision</b> 的模型才能识图，默认已经填好了。'
+        + '如果报「模型不存在」，多半是模型名更新了，改上面的「模型」即可。',
+  },
+  zhipu: {
+    name: '智谱 GLM',
+    tag: '有免费模型',
+    endpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+    model: 'glm-4v-flash',
+    console: 'https://open.bigmodel.cn/usercenter/apikeys',
+    button: '🔑 去智谱获取 API Key',
+    steps: [
+      '打开 <b>open.bigmodel.cn</b>，注册并登录',
+      '<b>glm-4v-flash 是免费模型</b>，不充钱也能用',
+      '进「API Keys」创建，复制那串 Key',
+    ],
+    hint: '<b>glm-4v-flash 免费</b>，适合先跑通。想更准可以换成同系列的付费视觉模型。',
+  },
+  qwen: {
+    name: '通义千问',
+    tag: '阿里云 · 有免费额度',
+    endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    model: 'qwen-vl-plus',
+    console: 'https://bailian.console.aliyun.com/',
+    button: '🔑 去阿里云百炼获取 API Key',
+    steps: [
+      '打开 <b>bailian.console.aliyun.com</b>，用阿里云账号登录',
+      '开通百炼后，在「API-KEY 管理」里创建一个',
+      '复制 <b>sk-</b> 开头那串，粘到下面',
+    ],
+    hint: '新账号一般有免费额度。qwen-vl-plus 是视觉模型，默认已经填好。',
+  },
+  siliconflow: {
+    name: '硅基流动',
+    tag: '一个 Key 多个模型',
+    endpoint: 'https://api.siliconflow.cn/v1/chat/completions',
+    model: 'Qwen/Qwen2.5-VL-72B-Instruct',
+    console: 'https://cloud.siliconflow.cn/account/ak',
+    button: '🔑 去硅基流动获取 API Key',
+    steps: [
+      '打开 <b>cloud.siliconflow.cn</b>，注册并登录',
+      '在「API 密钥」里新建一个',
+      '复制 <b>sk-</b> 开头那串，粘到下面',
+    ],
+    hint: '一个 Key 能调用很多家的开源模型，也就是这里可以随便换模型名。'
+        + '默认用的是通义千问的视觉模型。',
+  },
+  openrouter: {
+    name: 'OpenRouter',
+    tag: '一个 Key 打通几十家',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    model: 'google/gemini-2.0-flash-001',
+    console: 'https://openrouter.ai/keys',
+    button: '🔑 去 OpenRouter 获取 API Key',
+    steps: [
+      '打开 <b>openrouter.ai</b>，注册并登录',
+      '在「Keys」里创建一个',
+      '复制 <b>sk-or-</b> 开头那串，粘到下面',
+    ],
+    hint: '一个 Key 打通几十家模型，模型名写成 <b>厂商/模型</b> 的形式。'
+        + '有少量免费模型可以白嫖，也可以直接换成别家的付费模型。',
+  },
+  custom: {
+    name: '自定义',
+    tag: '自己填接口',
+    endpoint: '',
+    model: '',
+    console: '',
+    button: '',
+    steps: [
+      '填下面三个框：<b>接口地址</b>、<b>模型名</b>、<b>API Key</b>',
+      '接口地址要填<b>完整的</b>那一条，通常以 <b>/chat/completions</b> 结尾',
+      '必须是 OpenAI 兼容的接口，且允许网页直接调用（跨域）',
+    ],
+    hint: '任何 OpenAI 兼容的接口都能用，包括自建的转发。'
+        + '如果报「连不上」，多半是对方不允许网页直接调用 —— 网页应用没有服务器可以中转，'
+        + '这种情况只能自己搭一个转发再把地址填进来。',
+    isCustom: true,
   },
 };
 
+// 当前这一家实际用的地址和模型：用户改过就用用户改的，没改就跟着预设走。
+// 这样以后预设更新了模型名，没动过这一项的人会自动跟上。
+const endpointOf = id => (config.endpoints && config.endpoints[id]) || (PROVIDERS[id] || {}).endpoint || '';
+const modelOf    = id => (config.models    && config.models[id])    || (PROVIDERS[id] || {}).model    || '';
+
 function loadConfig() {
+  // 形状：{ provider, keys: {}, endpoints: {}, models: {} }
+  // endpoints / models 只存「用户改过的那些」，没改的跟着预设走。
+  const blank = () => {
+    const k = {}, e = {}, m = {};
+    for (const id in PROVIDERS) k[id] = '';
+    return { provider: 'deepseek', keys: k, endpoints: e, models: m };
+  };
   try {
     const raw = JSON.parse(localStorage.getItem(KEY_CONFIG) || '{}');
-    // 迁移：老版本只存了 { apiKey }，那时候只有 DeepSeek 一家
-    if (raw.apiKey && !raw.keys) {
-      return { provider: 'deepseek', keys: { deepseek: raw.apiKey, agnes: '' } };
+    const cfg = blank();
+    // 迁移一：最老的版本只存了 { apiKey }，那时候只有 DeepSeek 一家
+    if (raw.apiKey && !raw.keys) { cfg.keys.deepseek = raw.apiKey; return cfg; }
+    // 迁移二：上一版是 { provider, keys }，没有 endpoints / models
+    cfg.provider = PROVIDERS[raw.provider] ? raw.provider : 'deepseek';
+    for (const id in cfg.keys) cfg.keys[id] = (raw.keys || {})[id] || '';
+    for (const id in PROVIDERS) {
+      if ((raw.endpoints || {})[id]) cfg.endpoints[id] = raw.endpoints[id];
+      if ((raw.models || {})[id]) cfg.models[id] = raw.models[id];
     }
-    return {
-      provider: raw.provider || 'deepseek',
-      keys: { deepseek: '', agnes: '', ...(raw.keys || {}) },
-    };
-  } catch {
-    return { provider: 'deepseek', keys: { deepseek: '', agnes: '' } };
-  }
+    return cfg;
+  } catch { return blank(); }
 }
 function saveConfig(cfg) { localStorage.setItem(KEY_CONFIG, JSON.stringify(cfg)); }
 // 当前服务商那把钥匙。切换服务商时各自的 Key 都留着，不用重填。
-const activeKey = () => (config.keys && config.keys[config.provider]) || '';
+const keyOf = id => (config.keys && config.keys[id]) || '';
+const activeKey = () => keyOf(config.provider);
 function loadGoal() {
   const g = parseInt(localStorage.getItem(KEY_GOAL) || '1800', 10);
   return isNaN(g) ? 1800 : g;
@@ -940,6 +1080,7 @@ const el = {
   apiKeyInput: $('apiKeyInput'), saveConfigBtn: $('saveConfigBtn'), getApiBtn: $('getApiBtn'),
   providerPick: $('providerPick'), configSteps: $('configSteps'),
   keyLabel: $('keyLabel'), configHint: $('configHint'),
+  endpointInput: $('endpointInput'), modelInput: $('modelInput'), advancedBox: $('advancedBox'),
   sheetMask: $('sheetMask'), sheet: $('sheet'),
   sheetTitle: $('sheetTitle'), sheetSub: $('sheetSub'), sheetTotal: $('sheetTotal'),
   sheetKcal: $('sheetKcal'), sheetBadge: $('sheetBadge'), sheetBody: $('sheetBody'),
@@ -1302,8 +1443,13 @@ const RECOGNIZE_PROMPT =
 async function callRecognize(base64) {
   const p = PROVIDERS[config.provider] || PROVIDERS.deepseek;
   const apiKey = activeKey();
+  const endpoint = endpointOf(config.provider);
+  const model = modelOf(config.provider);
+  if (!endpoint) throw new Error('还没填接口地址 —— 打开下面的「高级设置」填一条');
+  if (!model) throw new Error('还没填模型名 —— 打开下面的「高级设置」填一个');
+
   const body = {
-    model: p.model,
+    model,
     messages: [{
       role: 'user',
       content: [
@@ -1313,28 +1459,32 @@ async function callRecognize(base64) {
     max_tokens: 512,
   };
   const imageUrl = { url: base64 };
-  if (config.provider === 'deepseek') {
-    // deepseek-flash 默认开启思考模式且 effort=high。实测 max_tokens=100 时
-    // 100 个 token 会被思维链全部吃光，content 返回空字符串 —— 识别结果丢失。
-    // 这里是「看一眼报菜名」的简单任务，关掉思考即可，还省约 1/3 token。
-    // Agnes 没有这个开关（它用 chat_template_kwargs），所以只对 DeepSeek 加。
-    imageUrl.detail = 'low';
-    body.thinking = { type: 'disabled' };
-  }
+  if (p.detailLow) imageUrl.detail = 'low';
+  if (p.disableThinking) body.thinking = { type: 'disabled' };
   body.messages[0].content.push({ type: 'image_url', image_url: imageUrl });
 
-  const resp = await fetch(p.endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify(body)
-  });
+  let resp;
+  try {
+    resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+  } catch (e) {
+    // fetch 只在「网络不通」或「对方不允许跨域」时抛异常，而这两种情况对用户来说
+    // 表现一样、原因完全不同。纯前端应用没有服务器可以中转，所以只能把两种可能都讲清楚。
+    let host = endpoint;
+    try { host = new URL(endpoint).host; } catch {}
+    throw new Error(`连不上 ${host}。可能是网络问题，也可能是这个接口不允许网页直接调用`
+      + `（跨域）。换个网络试试；如果一直这样，说明这家接口不能纯网页调用。`);
+  }
   if (!resp.ok) {
     const t = await resp.text();
     let msg = t.slice(0, 150);
-    try { const j = JSON.parse(t); msg = j?.error?.message || msg; } catch {}
+    try { const j = JSON.parse(t); msg = j?.error?.message || j?.message || msg; } catch {}
     // 免费额度限流是个很常见的失败，直接把原文交给用户，别让他猜
     throw new Error(`API ${resp.status}: ${msg}`);
   }
@@ -1632,18 +1782,44 @@ el.nextMonth.addEventListener('click', () => {
 /* ==================== 配置 ==================== */
 const CONFIG_TOGGLE_LABEL = '⚙️ 配置 AI 服务';
 
-// 服务商切换时，说明文字、Key 输入框、跳转按钮全部跟着换
+// 把输入框里的东西存回当前这一家。切换服务商和点保存时都要先走这一步，
+// 否则切一下就丢掉刚填的 Key。
+function stashCurrent() {
+  const id = config.provider;
+  if (!config.keys) config.keys = {};
+  if (!config.endpoints) config.endpoints = {};
+  if (!config.models) config.models = {};
+  config.keys[id] = el.apiKeyInput.value.trim();
+  // 只记「和预设不一样」的：这样以后预设更新了模型名，没动过这一项的人会跟着更新
+  const ep = el.endpointInput.value.trim();
+  const md = el.modelInput.value.trim();
+  const preset = PROVIDERS[id] || {};
+  if (ep && ep !== preset.endpoint) config.endpoints[id] = ep; else delete config.endpoints[id];
+  if (md && md !== preset.model) config.models[id] = md; else delete config.models[id];
+}
+
+// 服务商切换时，按钮、说明、Key 框、接口地址与模型全部跟着换
 function renderConfigPanel() {
-  const p = PROVIDERS[config.provider] || PROVIDERS.deepseek;
+  const id = config.provider;
+  const p = PROVIDERS[id] || PROVIDERS.deepseek;
+
+  // 按钮由数据生成：加一家服务商只需要改 PROVIDERS，不用动 HTML
+  el.providerPick.innerHTML = Object.entries(PROVIDERS).map(([k, v]) =>
+    `<button data-provider="${k}" class="${k === id ? 'on' : ''}">`
+    + `<b>${v.name}</b><span>${v.tag || ''}</span></button>`).join('');
+
   el.configSteps.innerHTML = p.steps.map(s => `<li>${s}</li>`).join('');
-  el.keyLabel.textContent = p.keyLabel;
-  el.apiKeyInput.placeholder = 'sk-xxxxxxxx';
-  el.apiKeyInput.value = (config.keys && config.keys[config.provider]) || '';
+  el.keyLabel.textContent = p.name + ' API Key';
+  el.apiKeyInput.placeholder = p.isCustom ? 'sk-…（按这一家的格式）' : 'sk-xxxxxxxx';
+  el.apiKeyInput.value = keyOf(id);
+  el.endpointInput.value = endpointOf(id);
+  el.modelInput.value = modelOf(id);
   el.configHint.textContent = p.hint;
-  el.getApiBtn.textContent = p.button;
-  el.providerPick.querySelectorAll('button').forEach(b => {
-    b.classList.toggle('on', b.dataset.provider === config.provider);
-  });
+
+  // 自定义那一项必须自己填地址和模型，所以默认展开；其余折叠着，不打扰
+  el.advancedBox.open = !!p.isCustom || !endpointOf(id) || !modelOf(id);
+  el.getApiBtn.hidden = !p.console;
+  if (p.console) el.getApiBtn.textContent = p.button;
 }
 
 el.configToggle.addEventListener('click', () => {
@@ -1656,22 +1832,22 @@ el.configToggle.addEventListener('click', () => {
 el.providerPick.addEventListener('click', e => {
   const btn = e.target.closest('button[data-provider]');
   if (!btn) return;
-  // 先把当前输入框里的内容存回原服务商，否则切一下就丢了
-  if (config.keys) config.keys[config.provider] = el.apiKeyInput.value.trim();
+  stashCurrent();
   config.provider = btn.dataset.provider;
   saveConfig(config);
   renderConfigPanel();
   const p = PROVIDERS[config.provider];
-  setStatusTemporary(config.keys[config.provider] ? `已切到 ${p.name}` : `已切到 ${p.name}，还需要填 Key`, 2000);
+  const ready = keyOf(config.provider) && endpointOf(config.provider) && modelOf(config.provider);
+  setStatusTemporary(ready ? `已切到 ${p.name}` : `已切到 ${p.name}，还需要填配置`, 2200);
 });
 
 el.getApiBtn.addEventListener('click', () => {
-  window.open((PROVIDERS[config.provider] || PROVIDERS.deepseek).console, '_blank');
+  const url = (PROVIDERS[config.provider] || {}).console;
+  if (url) window.open(url, '_blank');
 });
 
 el.saveConfigBtn.addEventListener('click', () => {
-  if (!config.keys) config.keys = { deepseek: '', agnes: '' };
-  config.keys[config.provider] = el.apiKeyInput.value.trim();
+  stashCurrent();
   saveConfig(config);
   setStatusTemporary('配置已保存', 1500);
 });
