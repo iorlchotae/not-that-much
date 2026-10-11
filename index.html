@@ -514,6 +514,8 @@
   }
   .providers button b { font-size: 14px; font-weight: 600; }
   .providers button span { font-size: 11px; color: var(--text-2); line-height: 1.35; }
+  /* 网页调不通的那几家：橙色标出来，免得点下去才发现 */
+  .providers button span.warn { color: var(--orange); font-weight: 600; }
   .providers button.on {
     background: var(--card-solid);
     border-color: var(--accent);
@@ -987,6 +989,27 @@ const PROVIDERS = {
     ],
     hint: '一个 Key 打通几十家模型，模型名写成 <b>厂商/模型</b> 的形式。'
         + '有少量免费模型可以白嫖，也可以直接换成别家的付费模型。',
+  },
+  opencodego: {
+    name: 'OpenCode Go',
+    tag: '要自建转发',
+    // 地址是从本机 harness 自己的模型清单里读出来的
+    // （@earendil-works/pi-ai/dist/providers/data/opencode-go.json），不是猜的。
+    // 下面有 10 个支持图片输入的模型，都走这条 OpenAI 兼容路径。
+    endpoint: 'https://opencode.ai/zen/go/v1/chat/completions',
+    model: 'glm-5.3-flash',
+    console: 'https://opencode.ai',
+    button: '🔑 去 OpenCode 获取 API Key',
+    steps: [
+      '先拿一个 OpenCode Zen / Go 的 Key',
+      '⚠️ <b>这个地址网页直接调不了</b>，会被浏览器拦下',
+      '要用的话，把「接口地址」改成<b>你自己转发服务的地址</b>',
+    ],
+    hint: '接口本身是好的，但服务端没开跨域（连预检请求都回 404），所以浏览器发不出去。'
+        + '想用就得自己搭一个转发，把转发地址填进「高级设置」。'
+        + '模型也能在那里换，识图可用：glm-5.3-flash（最便宜）、'
+        + 'deepseek-v4-flash-vision-exp、kimi-k2.6、mimo-v2.5、qwen3.6-plus 等。',
+    needsProxy: true,
   },
   custom: {
     name: '自定义',
@@ -1804,9 +1827,11 @@ function renderConfigPanel() {
   const p = PROVIDERS[id] || PROVIDERS.deepseek;
 
   // 按钮由数据生成：加一家服务商只需要改 PROVIDERS，不用动 HTML
+  // needsProxy 的那家用橙色标出来 —— 这类接口网页直接调不通，
+  // 标在按钮上比藏在下面的说明里更容易看见。
   el.providerPick.innerHTML = Object.entries(PROVIDERS).map(([k, v]) =>
     `<button data-provider="${k}" class="${k === id ? 'on' : ''}">`
-    + `<b>${v.name}</b><span>${v.tag || ''}</span></button>`).join('');
+    + `<b>${v.name}</b><span class="${v.needsProxy ? 'warn' : ''}">${v.tag || ''}</span></button>`).join('');
 
   el.configSteps.innerHTML = p.steps.map(s => `<li>${s}</li>`).join('');
   el.keyLabel.textContent = p.name + ' API Key';
