@@ -1006,7 +1006,9 @@ const PROVIDERS = {
       '要用的话，把「接口地址」改成<b>你自己转发服务的地址</b>',
     ],
     hint: '接口本身是好的，但服务端没开跨域（连预检请求都回 404），所以浏览器发不出去。'
-        + '想用就得自己搭一个转发，把转发地址填进「高级设置」。'
+        + '想用就得自己搭一个转发，把转发地址填进「高级设置」——'
+        + '教程：<a href="https://github.com/iorlchotae/not-that-much/blob/main/proxies/README.md"'
+        + ' target="_blank" rel="noopener">搭一个 Cloudflare Worker</a>（免费，约 2 分钟）。'
         + '模型也能在那里换，识图可用：glm-5.3-flash（最便宜）、'
         + 'deepseek-v4-flash-vision-exp、kimi-k2.6、mimo-v2.5、qwen3.6-plus 等。',
     needsProxy: true,
@@ -1839,7 +1841,9 @@ function renderConfigPanel() {
   el.apiKeyInput.value = keyOf(id);
   el.endpointInput.value = endpointOf(id);
   el.modelInput.value = modelOf(id);
-  el.configHint.textContent = p.hint;
+  // innerHTML, not textContent: the hints contain <b> tags, and assigning them as text
+  // made those tags show up literally in the panel.
+  el.configHint.innerHTML = p.hint;
 
   // 自定义那一项必须自己填地址和模型，所以默认展开；其余折叠着，不打扰
   el.advancedBox.open = !!p.isCustom || !endpointOf(id) || !modelOf(id);
