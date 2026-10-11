@@ -1706,7 +1706,7 @@ el.fileInput.addEventListener('change', async e => {
     el.preview.style.display = 'block';
 
     setStatus('AI 识别中…');
-    showCatPeek('guilty', '让我仔细看看…');
+    showCatPeek('hungry', '让我仔细看看…');
     const reply = await recognizeImage(base64);
     setStatus(`识别到：${reply}`);
 
@@ -1735,7 +1735,7 @@ el.fileInput.addEventListener('change', async e => {
     }
   } catch (err) {
     console.error(err);
-    showCatPeek('sad', '这个…我没看清');
+    showCatPeek('cry', '这个…我没看清');
     setStatus('出错：' + err.message, true);
     setTimeout(hideCatPeek, 4200);
   } finally {
@@ -2319,7 +2319,7 @@ el.cardShareBtn.addEventListener('click', shareCardImage);
   const wd = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
   el.dateSub.textContent = `${d.getMonth()+1}月${d.getDate()}日 · ${wd}`;
   // 标题旁的猫：固定得意脸，代表"它觉得自己没吃多少"
-  el.hCat.innerHTML = catImg('smug', 46);
+  el.hCat.innerHTML = catImg('smug', 52);
   renderToday();
   preloadCatImages();
 
