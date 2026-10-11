@@ -50,12 +50,15 @@ Base URL 就能用。
 
 ### 在 App 里填
 
-打开 App 底部的 **⚙️ 配置 AI 服务** → 选 **OpenCode Go** → 展开 **高级设置** →
+打开 App 底部的 **⚙️ 配置 AI 服务** → 选 **自定义** →
 把「接口地址」改成（**`?url=` 后面那串必须 URL 编码**）：
 
 ```
 https://xxx.yyy.workers.dev/?url=https%3A%2F%2Fopencode.ai%2Fzen%2Fgo%2Fv1%2Fchat%2Fcompletions
 ```
+
+「模型名」填 `glm-5.3-flash`（OpenCode 上最便宜的识图模型，也可换
+`deepseek-v4-flash-vision-exp` / `kimi-k2.6` / `mimo-v2.5` / `qwen3.6-plus`）。
 
 豆包就是换成：
 
@@ -63,7 +66,9 @@ https://xxx.yyy.workers.dev/?url=https%3A%2F%2Fopencode.ai%2Fzen%2Fgo%2Fv1%2Fcha
 https://xxx.yyy.workers.dev/?url=https%3A%2F%2Fark.cn-beijing.volces.com%2Fapi%2Fv3%2Fchat%2Fcompletions
 ```
 
-模型名照旧填在「模型名」里，Key 照旧填在 API Key 里 —— 转发会把它们原样带过去。
+Key 照旧填在 API Key 里 —— 转发会把请求体和 Key 原样带过去。
+
+> 「自定义」和内置预设发出去的请求是**完全一样**的，预设只是帮你把地址和模型预先填好。
 
 > 要加别的服务商，把它的域名加进 `ALLOWED_HOSTS` 再重新 Deploy。
 > 那个白名单是必要的：没有它，这个 Worker 就是一个谁都能拿来做坏事的开放代理。
