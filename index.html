@@ -22,746 +22,1233 @@
 <meta property="og:image:height" content="500">
 <meta name="twitter:card" content="summary">
 <style>
-  /* ---- 亮色为默认主题：白底 + Liquid Glass ---- */
+/* ============================================================================
+   没吃多少 · 设计系统
+   ----------------------------------------------------------------------------
+   这是一个「产品工具」，不是营销页。所以这里只取设计品味规则（单一强调色、
+   形状锁定、真实状态、排版纪律），不用落地页的版式套路。
+
+   三条锁：
+     1. 形状锁  卡片 20 / 内部 12 / 控件 胶囊。全站只允许这三档圆角。
+     2. 颜色锁  强调色（操作与导航）只有 iOS 蓝一个。
+                绿/橙/红 只做「数据语义」（热量环、达标、超出），不做装饰。
+                也就是说：绿色永远代表"数据说了什么"，蓝色永远代表"你能点什么"。
+     3. 数字锁  所有会变动的数字都用等宽数位，避免跳动。
+
+   旧变量名全部保留（--text-2 / --fill-2 / --green ...），因为 JS 里
+   直接引用了 var(--green) / var(--red)，改名会静默失效。
+   ============================================================================ */
+
+:root {
+  /* ---- 旧名字：保留，勿删（JS 依赖） ---- */
+  --accent: #007aff;
+  --green: #34c759;
+  --orange: #ff9500;
+  --red: #ff3b30;
+  --purple: #af52de;
+  --bg: #f5f5f7;
+  --card: #ffffff;
+  --card-solid: #ffffff;
+  --sheet: #ffffff;
+  --border: rgba(0, 0, 0, 0.07);
+  --text: #101114;
+  --text-2: #6b6f76;
+  --text-3: #9aa0a6;
+  --fill: rgba(120, 120, 128, 0.12);
+  --fill-2: rgba(120, 120, 128, 0.07);
+  --rim: none;
+
+  /* ---- 新增：间距（4 的倍数，别再造中间值） ---- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px;
+
+  /* ---- 新增：形状锁 ---- */
+  --r-card: 20px;
+  --r-inner: 12px;
+  --r-ctl: 999px;
+
+  /* ---- 新增：字号阶 ---- */
+  --t-display: 46px;
+  --t-h1: 21px;
+  --t-h2: 15px;
+  --t-body: 14px;
+  --t-cap: 12.5px;
+  --t-micro: 11.5px;
+
+  /* ---- 新增：高度（染了底色的阴影，不用纯黑） ---- */
+  --elev-1: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --elev-2: 0 10px 30px -14px rgba(16, 24, 40, 0.20);
+  --elev-3: 0 18px 50px -20px rgba(16, 24, 40, 0.28);
+
+  /* 页面氛围：极淡，只为了让白卡片有东西可以「浮」起来 */
+  --amb: radial-gradient(900px 460px at 12% -8%, rgba(0, 122, 255, 0.05), transparent 60%),
+         radial-gradient(800px 420px at 92% 0%, rgba(175, 82, 222, 0.05), transparent 58%);
+}
+
+@media (prefers-color-scheme: dark) {
   :root {
-    --accent: #007aff;
-    --green:  #34c759;
-    --orange: #ff9500;
-    --red:    #ff3b30;
-    --purple: #af52de;
-    --bg: #fff;
-    --card: rgba(255, 255, 255, 0.74);
-    --card-solid: #fff;
-    --sheet: rgba(255, 255, 255, 0.92);
-    --border: rgba(0, 0, 0, 0.06);
-    --text: #000;
-    --text-2: rgba(60, 60, 67, 0.6);
-    --text-3: rgba(60, 60, 67, 0.3);
-    --fill: rgba(120, 120, 128, 0.12);
-    --fill-2: rgba(120, 120, 128, 0.08);
-    --shadow-card:
-      inset 0 1px 0 rgba(255, 255, 255, 0.95),
-      0 1px 2px rgba(0, 0, 0, 0.05),
-      0 10px 28px rgba(0, 0, 0, 0.08);
-    --shadow-sheet: 0 -8px 40px rgba(0, 0, 0, 0.18);
-    /* 镜面高光边：玻璃的"边缘受光"，Liquid Glass 最认得出的特征 */
-    --rim: linear-gradient(155deg,
-      rgba(255,255,255,1) 0%, rgba(255,255,255,0.28) 32%,
-      rgba(255,255,255,0.05) 60%, rgba(255,255,255,0.42) 100%);
+    --accent: #0a84ff;
+    --green: #30d158;
+    --orange: #ff9f0a;
+    --red: #ff453a;
+    --purple: #bf5af2;
+    --bg: #0a0a0c;                     /* 不用纯黑：纯黑上的投影和层次全部失效 */
+    --card: #16161a;
+    --card-solid: #16161a;
+    --sheet: #1b1b20;
+    --border: rgba(255, 255, 255, 0.09);
+    --text: #f5f5f7;
+    --text-2: rgba(235, 235, 245, 0.62);
+    --text-3: rgba(235, 235, 245, 0.36);
+    --fill: rgba(120, 120, 128, 0.24);
+    --fill-2: rgba(120, 120, 128, 0.15);
+    --elev-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --elev-2: 0 12px 34px -16px rgba(0, 0, 0, 0.8);
+    --elev-3: 0 20px 56px -22px rgba(0, 0, 0, 0.9);
+    --amb: radial-gradient(900px 460px at 12% -8%, rgba(10, 132, 255, 0.10), transparent 60%),
+           radial-gradient(800px 420px at 92% 0%, rgba(191, 90, 242, 0.08), transparent 58%);
   }
-  /* ---- 深色模式：跟着系统走 ---- */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --accent: #0a84ff;
-      --green:  #30d158;
-      --orange: #ff9f0a;
-      --red:    #ff453a;
-      --purple: #bf5af2;
-      --bg: #000;
-      --card: rgba(28, 28, 30, 0.68);
-      --card-solid: #1c1c1e;
-      --sheet: rgba(28, 28, 30, 0.94);
-      --border: rgba(255, 255, 255, 0.08);
-      --text: #fff;
-      --text-2: rgba(235, 235, 245, 0.6);
-      --text-3: rgba(235, 235, 245, 0.3);
-      --fill: rgba(120, 120, 128, 0.24);
-      --fill-2: rgba(120, 120, 128, 0.16);
-      --shadow-card:
-        inset 0 1px 0 rgba(255, 255, 255, 0.05),
-        0 8px 24px rgba(0, 0, 0, 0.4);
-      --shadow-sheet: 0 -8px 40px rgba(0, 0, 0, 0.6);
-      --rim: linear-gradient(155deg,
-        rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.10) 35%,
-        rgba(255,255,255,0) 62%, rgba(255,255,255,0.16) 100%);
-    }
-  }
+}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
-    background: var(--bg); color: var(--text);
-    min-height: 100vh;
-    padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 32px);
-    max-width: 480px; margin: 0 auto; font-size: 15px;
-    -webkit-font-smoothing: antialiased; overflow-x: hidden;
-  }
-  /* 全页柔光：玻璃后面必须有东西可模糊。
-     纯白背景下 backdrop-filter 模糊白色还是白色，玻璃会完全隐形 —— 
-     所以这层彩光是整个亮色主题成立的前提，不是装饰。 */
-  body::before {
-    content: ''; position: fixed; inset: 0;
-    background:
-      radial-gradient(95% 15% at 8% 0%,   rgba(0, 122, 255, 0.26), transparent 72%),
-      radial-gradient(85% 13% at 95% 5%,  rgba(175, 82, 222, 0.22), transparent 72%),
-      radial-gradient(90% 17% at 22% 32%, rgba(0, 122, 255, 0.13), transparent 74%),
-      radial-gradient(85% 15% at 90% 50%, rgba(175, 82, 222, 0.12), transparent 74%),
-      radial-gradient(95% 17% at 18% 71%, rgba(0, 122, 255, 0.11), transparent 76%),
-      radial-gradient(85% 15% at 86% 92%, rgba(175, 82, 222, 0.10), transparent 76%);
-    pointer-events: none; z-index: 0;
-  }
-  @media (prefers-color-scheme: dark) {
-    body::before {
-      background:
-        radial-gradient(circle at 15% -10%, rgba(10, 132, 255, 0.22), transparent 45%),
-        radial-gradient(circle at 85% 15%, rgba(191, 90, 242, 0.16), transparent 45%),
-        radial-gradient(circle at 50% 110%, rgba(48, 209, 88, 0.14), transparent 50%);
-    }
-  }
-  main, header, section { position: relative; z-index: 1; }
+/* ============================ 基础 ============================ */
 
-  header { padding: 28px 4px 16px; }
-  h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
-  .h-sub { font-size: 13px; color: var(--text-2); margin-top: 2px; font-weight: 500; }
+*, *::before, *::after { box-sizing: border-box; }
 
-  .segmented {
-    display: flex; background: var(--fill); border-radius: 11px;
-    padding: 2px; margin-bottom: 16px;
-  }
-  .segmented button {
-    flex: 1; background: transparent; border: none;
-    padding: 8px 12px; font-size: 13px; font-weight: 600;
-    font-family: inherit; color: var(--text); border-radius: 9px;
-    cursor: pointer; transition: background .25s cubic-bezier(.4,0,.2,1), box-shadow .25s;
-    letter-spacing: -0.01em;
-  }
-  .segmented button.active {
-    background: var(--card-solid);
-    box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 3px 1px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.04);
-  }
+html { -webkit-text-size-adjust: 100%; }
 
-  .card {
-    position: relative;
-    background: var(--card);
-    backdrop-filter: blur(30px) saturate(180%);
-    -webkit-backdrop-filter: blur(30px) saturate(180%);
-    border: 0.5px solid var(--border); border-radius: 22px;
-    padding: 20px; margin-bottom: 14px;
-    box-shadow: var(--shadow-card);
-  }
-  /* 镜面高光边：一圈从左上到右下渐弱的受光。
-     这是 Liquid Glass 最认得出的特征 —— 玻璃不只有模糊，边缘还会"亮起来"。
-     只占 0.6px 的边缘，遮不到内容。 */
-  .card::before {
-    content: ''; position: absolute; inset: 0; border-radius: inherit;
-    padding: 0.6px; background: var(--rim);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    mask-composite: exclude;
-    pointer-events: none;
-  }
+body {
+  margin: 0;
+  min-height: 100dvh;                  /* 不是 100vh：iOS 地址栏会让 100vh 跳 */
+  background: var(--bg);
+  background-image: var(--amb);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+               "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  font-size: var(--t-body);
+  line-height: 1.55;
+  letter-spacing: -0.006em;
+  -webkit-font-smoothing: antialiased;
+}
+/* 中文界面用系统字体是正确选择，不换 Geist 之类的拉丁字体：
+   那类字体没有中文字形，会掉进"英文一种字、中文另一种字"的破绽里。 */
 
-  .ring-wrap { display: flex; align-items: center; gap: 22px; }
-  .ring { position: relative; width: 118px; height: 118px; flex-shrink: 0; }
-  .ring svg { transform: rotate(-90deg); display: block; }
-  .ring-text {
-    position: absolute; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-  }
-  .ring-text .num {
-    font-size: 30px; font-weight: 700; letter-spacing: -0.03em;
-    font-variant-numeric: tabular-nums; line-height: 1;
-  }
-  .ring-text .lbl { font-size: 10px; color: var(--text-2); margin-top: 4px; font-weight: 500; }
-  .stats { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-  .stat-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
-  .stat-row .k { color: var(--text-2); }
-  .stat-row .v {
-    font-weight: 600; font-variant-numeric: tabular-nums;
-    font-size: 16px; letter-spacing: -0.01em;
-  }
-  .stat-row .v.over { color: var(--red); }
+h1, h2, h3, p, ol, ul, figure { margin: 0; }
+button { font: inherit; color: inherit; }
+svg { display: block; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+[hidden] { display: none !important; }
 
-  .goal-edit {
-    display: flex; align-items: center; gap: 8px;
-    margin-top: 16px; padding-top: 14px;
-    border-top: 0.5px solid var(--border);
-    font-size: 13px; color: var(--text-2);
-  }
-  .goal-edit input {
-    width: 74px; background: var(--fill-2); border: none;
-    border-radius: 9px; color: var(--text);
-    padding: 7px 10px; font-size: 14px; text-align: center;
-    font-family: inherit; font-variant-numeric: tabular-nums; font-weight: 600;
-  }
-  .goal-edit input:focus { outline: 1px solid var(--accent); }
+/* 会变动的数字一律等宽，否则每秒跳动 */
+.num, .v, .big, .kcal, #ringNum, #goalDisplay, #intakeDisplay, #remainDisplay,
+#weekTotal, #weekAvg, #weekGood, #weekDiff, #monthAvg, #monthGood, #monthRecorded,
+.bar-label, .kcal-val, .kcal-num, .meal-item .kcal {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
 
-  .range-edit {
-    display: flex; align-items: center; gap: 8px;
-    margin-top: 10px; font-size: 13px; color: var(--text-2);
-  }
-  .range-edit input {
-    width: 58px; background: var(--fill-2); border: none;
-    border-radius: 9px; color: var(--text);
-    padding: 7px 8px; font-size: 14px; text-align: center;
-    font-family: inherit; font-variant-numeric: tabular-nums; font-weight: 600;
-  }
-  .range-edit input:focus { outline: 1px solid var(--accent); }
-  .range-edit .sep { color: var(--text-3); }
+/* ============================ 应用骨架 ============================ */
 
-  /* 1800 只是推荐值 —— 让用户一眼看到它是可以改的 */
-  .rec {
-    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-    color: var(--green); background: rgba(52, 199, 89, 0.14);
-    padding: 3px 9px; border-radius: 20px; margin-left: auto;
-  }
-  .field-note {
-    font-size: 12px; color: var(--text-3); line-height: 1.55;
-    margin-top: 12px;
-  }
+.app {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--sp-4) var(--sp-4) var(--sp-8);
+}
 
-  .btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; padding: 15px; border-radius: 15px; border: none;
-    font-size: 16px; font-weight: 600; font-family: inherit;
-    cursor: pointer; transition: transform .1s, opacity .15s;
-    letter-spacing: -0.01em;
-  }
-  .btn:active { transform: scale(0.98); opacity: 0.85; }
-  .btn-primary {
-    background: var(--accent); color: #fff;
-    box-shadow: 0 4px 14px rgba(10, 132, 255, 0.35);
-  }
-  .btn-primary:disabled { background: var(--fill); color: var(--text-3); box-shadow: none; }
-  .btn-ghost {
-    background: var(--fill-2); color: var(--text); font-size: 14px; padding: 12px;
-  }
+main { display: block; }
+.card { display: block; }
 
-  #preview { width: 100%; border-radius: 14px; margin-bottom: 14px; display: none; max-height: 260px; object-fit: cover; }
-  .status { font-size: 13px; color: var(--text-2); text-align: center; margin-top: 12px; min-height: 18px; line-height: 1.4; }
-  .status.err { color: var(--red); }
+/* ---- 顶部品牌栏 ---- */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0 var(--sp-4);
+}
+.brand-mark {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-inner);
+  background: var(--card-solid);
+  box-shadow: var(--elev-1);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.brand-mark .cat-img { width: 40px; height: 40px; }
+.brand-text { min-width: 0; }
+.brand-title {
+  font-size: var(--t-h1);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.brand-sub {
+  font-size: var(--t-cap);
+  color: var(--text-3);
+  line-height: 1.35;
+  margin-top: 1px;
+}
+/* 品牌栏右侧只放真实存在的东西。参考稿里的搜索框/铃铛/头像对应的功能这个 App
+   并没有，凭空画出来就是假界面，所以这里留空。 */
 
-  .section-title {
-    font-size: 13px; font-weight: 600; color: var(--text-2);
-    text-transform: uppercase; letter-spacing: 0.06em; margin: 0 4px 10px;
-  }
-  .meal-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 13px 0; border-bottom: 0.5px solid var(--border); font-size: 15px;
-  }
-  .meal-item:last-child { border-bottom: none; padding-bottom: 0; }
-  .meal-item:first-child { padding-top: 0; }
-  .meal-item .name { flex: 1; letter-spacing: -0.01em; }
-  .meal-item .time {
-    font-size: 12px; color: var(--text-3); margin-left: 8px;
-    font-variant-numeric: tabular-nums;
-  }
-  .meal-item .kcal {
-    color: var(--accent); font-weight: 600; margin-left: 12px;
-    font-variant-numeric: tabular-nums;
-  }
-  .meal-item .del {
-    background: none; border: none; color: var(--text-3);
-    font-size: 20px; padding: 0 0 0 12px; cursor: pointer;
-    line-height: 1; font-family: inherit;
-  }
-  .empty { text-align: center; color: var(--text-3); font-size: 14px; padding: 24px 0; }
+/* ---- 视图切换：手机是分段控件，宽屏变成左侧导航 ---- */
+.views {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  background: var(--fill-2);
+  border-radius: var(--r-ctl);
+  margin-bottom: var(--sp-4);
+}
+.views button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  border-radius: var(--r-ctl);
+  padding: 9px 4px;
+  font-size: var(--t-body);
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background .18s, color .18s, box-shadow .18s;
+}
+.views button.active {
+  background: var(--card-solid);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: var(--elev-1);
+}
+.views button:active { transform: scale(0.985); }
 
-  /* ---- 识别结果确认：克数可改，应对多人餐和没吃完 ---- */
-  .review-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 0; border-bottom: 0.5px solid var(--border);
-  }
-  .review-row:last-child { border-bottom: none; }
-  .review-row .nm {
-    flex: 1; font-size: 15px; min-width: 0; letter-spacing: -0.01em;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .review-row input {
-    width: 68px; background: var(--fill-2); border: none; border-radius: 9px;
-    color: var(--text); padding: 8px 6px; font-size: 15px; text-align: center;
-    font-family: inherit; font-variant-numeric: tabular-nums; font-weight: 600;
-  }
-  .review-row input:focus { outline: 1px solid var(--accent); }
-  .review-row .unit { font-size: 12px; color: var(--text-2); }
-  .review-row .kc {
-    width: 72px; text-align: right; font-size: 14px; font-weight: 600;
-    color: var(--accent); font-variant-numeric: tabular-nums;
-  }
-  .review-row .del {
-    background: none; border: none; color: var(--text-3);
-    font-size: 19px; padding: 0 0 0 6px; cursor: pointer;
-    line-height: 1; font-family: inherit;
-  }
-  .ratio {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin-top: 18px; font-size: 13px; color: var(--text-2);
-  }
-  .ratio button {
-    background: var(--fill-2); border: none; color: var(--text);
-    border-radius: 9px; padding: 7px 13px; font-size: 13px; font-weight: 600;
-    font-family: inherit; cursor: pointer;
-  }
-  .ratio button:active { opacity: 0.65; }
-  .review-empty { text-align: center; color: var(--text-3); font-size: 14px; padding: 22px 0; }
+/* ============================ 卡片 ============================ */
 
-  .hero-stat { text-align: center; padding: 8px 0 20px; position: relative; }
-  .hero-stat .big {
-    font-size: 44px; font-weight: 700; letter-spacing: -0.04em;
-    font-variant-numeric: tabular-nums; line-height: 1;
-  }
-  .hero-stat .unit { font-size: 16px; font-weight: 500; color: var(--text-2); margin-left: 4px; }
-  .hero-stat .cap { font-size: 13px; color: var(--text-2); margin-top: 8px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: var(--sp-5);
+  box-shadow: var(--elev-1);
+  margin-bottom: var(--sp-4);
+}
+.card > * + * { margin-top: var(--sp-4); }
 
-  .week-compare {
-    display: flex; justify-content: center; gap: 16px;
-    margin-top: 12px; font-size: 12px; color: var(--text-2);
-  }
-  .trend {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: var(--fill-2); border-radius: 20px;
-    padding: 5px 11px; font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-  .trend.up   { color: var(--red); }
-  .trend.down { color: var(--green); }
-  .trend.flat { color: var(--text-2); }
+.section-title {
+  font-size: var(--t-h2);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.section-title .count { font-size: var(--t-cap); color: var(--text-3); font-weight: 500; }
 
-  .week-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 16px; }
-  .bar-col { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
-  .bar-track {
-    width: 100%; height: 88px; background: var(--fill-2);
-    border-radius: 8px; position: relative; overflow: hidden;
-    transition: transform .15s;
-  }
-  .bar-col:active .bar-track { transform: scale(0.94); }
-  .bar-fill {
-    position: absolute; left: 0; right: 0; bottom: 0;
-    border-radius: 8px; transition: height .6s cubic-bezier(.4,0,.2,1);
-    background: var(--accent);
-  }
-  .bar-fill.good { background: var(--green); }
-  .bar-fill.over { background: var(--red); }
-  .bar-goal {
-    position: absolute; left: 0; right: 0;
-    border-top: 1px dashed rgba(0, 0, 0, 0.25); z-index: 2;
-  }
-  @media (prefers-color-scheme: dark) {
-    .bar-goal { border-top-color: rgba(255,255,255,0.35); }
-  }
-  .bar-label { font-size: 11px; color: var(--text-2); font-weight: 500; }
-  .bar-col.today .bar-label { color: var(--accent); font-weight: 700; }
-  .bar-col.today .bar-track { box-shadow: 0 0 0 1.5px var(--accent); }
+/* ============================ 热量主卡 ============================ */
 
-  .mini-stats {
-    display: grid; grid-template-columns: 1fr 1fr 1fr;
-    gap: 1px; background: var(--border);
-    border-radius: 14px; overflow: hidden; margin-top: 18px;
-  }
-  .mini-stat { background: var(--card-solid); padding: 14px 8px; text-align: center; }
-  .mini-stat .v {
-    font-size: 18px; font-weight: 700;
-    font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
-  }
-  .mini-stat .k { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+.summary { display: grid; gap: var(--sp-5); }
 
-  .chart-wrap { margin-top: 20px; padding-top: 18px; border-top: 0.5px solid var(--border); }
-  .chart-title {
-    font-size: 12px; color: var(--text-2); margin-bottom: 12px;
-    font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-  }
-  .chart-svg { width: 100%; height: 140px; display: block; overflow: visible; }
-  .chart-svg .area { fill: url(#areaGrad); }
-  .chart-svg .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .chart-svg .goal-line { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 4 4; }
-  .chart-svg .dot { fill: var(--accent); }
-  .chart-svg .dot-today { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
-  .chart-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-3); margin-top: 6px; }
+.summary-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--sp-4) var(--sp-5);
+  align-items: center;
+}
 
-  .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .month-nav .m-title { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
-  .month-nav button {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: var(--fill-2); border: none; color: var(--text);
-    font-size: 16px; cursor: pointer; font-family: inherit;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .month-nav button:disabled { opacity: 0.3; cursor: default; }
+/* 热量环 */
+.ring { position: relative; width: 128px; height: 128px; flex: none; }
+.ring svg { width: 100%; height: 100%; }
+.ring-track { stroke: var(--fill-2); }
+/* 只转进度弧，不转整个 SVG：整块旋转会把顶光也转 90 度，圆环就不再是"上面亮" */
+.ring-prog {
+  stroke: var(--accent);
+  transform: rotate(-90deg);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: stroke-dashoffset .7s cubic-bezier(.4,0,.2,1), stroke .3s;
+  /* 同色柔光：让进度像发光，而不是一条描边 */
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--ring, var(--accent)) 55%, transparent));
+}
+@media (prefers-reduced-transparency: reduce) { .ring-prog { filter: none; } }
+.ring-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+.ring-text .num {
+  font-size: var(--t-display);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  display: block;
+}
+.ring-text .lbl {
+  font-size: var(--t-micro);
+  color: var(--text-3);
+  margin-top: 4px;
+  display: block;
+}
 
-  .cal-head { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 8px; }
-  .cal-head span { text-align: center; font-size: 11px; color: var(--text-2); font-weight: 600; }
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-  .cal-cell {
-    aspect-ratio: 1; border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
-    background: var(--fill-2); color: var(--text-2);
-    position: relative; transition: transform .15s;
-    cursor: pointer;
-  }
-  .cal-cell:active:not(.blank) { transform: scale(0.9); }
-  .cal-cell.filled { color: #fff; }
-  .cal-cell.today { box-shadow: 0 0 0 2px var(--accent); color: var(--text); }
-  .cal-cell.blank { background: transparent; cursor: default; }
+/* 目标 / 已摄入 / 剩余 */
+/* 一个网格，两列：display:contents 让每行的标签/数值直接参与父网格，
+   于是三行的两列自动对齐，整组宽度也只占内容宽度，不再被拉伸 */
+.stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: var(--sp-5);
+  row-gap: var(--sp-3);
+  align-items: baseline;
+  width: max-content;
+  max-width: 100%;
+}
+.stat-row { display: contents; }
+.stat-row .k { font-size: var(--t-cap); color: var(--text-2); }
+.stat-row .v {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.stat-row .u { font-size: var(--t-micro); color: var(--text-3); margin-left: 3px; }
+.stat-row .v.over { color: var(--red); }
 
-  .legend { display: flex; gap: 14px; justify-content: center; margin-top: 16px; font-size: 11px; color: var(--text-2); flex-wrap: wrap; }
-  .legend span { display: flex; align-items: center; gap: 5px; }
-  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+/* 目标与达标范围：只在需要时才显眼，平时安静 */
+.goal-edit, .range-edit {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--t-cap);
+  color: var(--text-2);
+  flex-wrap: wrap;
+}
+/* 推荐徽标跟在内容后面，不要被推成卡片最右边的一个孤点 */
+.goal-edit { max-width: 420px; }
 
-  .sheet-mask {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-    z-index: 100; opacity: 0; pointer-events: none;
-    transition: opacity .3s; backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+.goal-edit input, .range-edit input {
+  width: 74px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--r-inner);
+  background: var(--fill-2);
+  color: var(--text);
+  font-size: var(--t-body);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.range-edit input { width: 60px; }
+.goal-edit input:focus, .range-edit input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.field-note { font-size: var(--t-micro); color: var(--text-3); line-height: 1.5; }
+.range-edit .sep { color: var(--text-3); }
+
+.rec {
+  background: var(--green);
+  margin-left: auto;
+  font-size: var(--t-micro);
+  font-weight: 600;
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  border-radius: var(--r-ctl);
+  padding: 3px 9px;
+}
+
+/* 猫与气泡是一个整体：气泡不许比猫更抢眼 */
+.cat-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+/* 原画是位图，靠 CSS 缩放；contain 保证任何比例下都不拉伸 */
+.cat-img { display: block; object-fit: contain; }
+
+button.cat {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  flex: none;
+}
+/* 112px，和上一版一样。用户明确提过「界面上小猫放大一些」，换布局时不能悄悄缩回去；
+   224px 的素材正好 2 倍，retina 上不虚。窄屏放得下 —— 360px 的实测在 _shots 里。 */
+.cat .cat-img { width: 112px; height: 112px; transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+.cat:active .cat-img { transform: scale(.92); }
+.cat .cat-img.pop { animation: catpop .3s cubic-bezier(.34,1.56,.64,1); }
+@keyframes catpop { 0% { transform: scale(.74) } 100% { transform: scale(1) } }
+
+.cat-say { flex: 1; min-width: 0; position: relative; }
+.cat-say span {
+  display: inline-block;
+  background: var(--fill-2);
+  color: var(--text);
+  border-radius: var(--r-inner);
+  padding: 10px 13px;
+  font-size: var(--t-body);
+  line-height: 1.45;
+}
+.cat-say::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  background: var(--fill-2);
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+/* 识别中：猫探头，比主猫小一档 */
+.cat-peek { display: flex; align-items: center; gap: var(--sp-2); }
+.cat-peek .cat-img { width: 52px; height: 52px; }
+.cat-peek .cat-say span { font-size: var(--t-cap); color: var(--text-2); }
+
+/* ============================ 按钮 ============================ */
+
+.btn {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  border-radius: var(--r-ctl);
+  padding: 14px 18px;
+  font-size: var(--t-body);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  transition: transform .16s, background .18s, opacity .18s;
+  white-space: nowrap;                 /* 按钮文字永远不换行 */
+}
+.btn:active { transform: scale(0.98); }
+.btn .ico { flex: none; }
+/* iOS 的主按钮不是一块纯色：一层很浅的竖向渐变 + 顶部内高光 + 同色投影，
+   按下去变暗并吃到内阴影，手感是"按进去了"而不是"变了个颜色" */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  /* 不支持 color-mix 的浏览器会把下面整条渐变判为非法而丢弃，先给一个实色兜底 */
+  background: var(--accent);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 82%, #fff) 0%,
+    var(--accent) 48%,
+    color-mix(in srgb, var(--accent) 90%, #000) 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 52, 120, 0.20),
+    0 8px 20px -8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 52%);
+}
+.btn-primary:active {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 90%, #000) 0%,
+    color-mix(in srgb, var(--accent) 80%, #000) 100%);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 40, 100, 0.30),
+    0 1px 2px rgba(0, 52, 120, 0.16);
+  transform: scale(0.985);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .btn-primary { background: var(--accent); }
+  .btn-primary::after { display: none; }
+}
+.btn-ghost {
+  background: var(--fill-2);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 0 0 1px var(--border);
+}
+@media (prefers-color-scheme: dark) {
+  .btn-ghost { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 0 0 1px var(--border); }
+}
+.btn-ghost:active { background: var(--fill); }
+.btn[disabled] { opacity: .5; cursor: default; }
+
+.status {
+  font-size: var(--t-cap);
+  color: var(--text-2);
+  min-height: 18px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.status.err { color: var(--red); }
+
+/* ============================ 记录列表 ============================ */
+
+.meal-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-top: 1px solid var(--border);
+}
+.meal-item:first-child { border-top: 0; }
+.meal-item .name {
+  font-size: var(--t-body);
+  font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.meal-item .name .time {
+  font-size: var(--t-micro);
+  color: var(--text-3);
+  font-weight: 400;
+  margin-left: var(--sp-2);
+  font-variant-numeric: tabular-nums;
+}
+.meal-item .kcal {
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--accent);
+  text-align: right;
+}
+.meal-item .kcal .unit { font-size: var(--t-micro); color: var(--text-3); margin-left: 2px; font-weight: 400; }
+.meal-item .del {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--r-ctl);
+  line-height: 0;
+}
+.meal-item .del:hover { color: var(--red); background: var(--fill-2); }
+.meal-item .del:active { transform: scale(.9); }
+
+.empty {
+  text-align: center;
+  color: var(--text-3);
+  font-size: var(--t-cap);
+  padding: var(--sp-6) var(--sp-4);
+  display: grid;
+  gap: var(--sp-2);
+  justify-items: center;
+}
+.empty .cat-img { width: 84px; height: 84px; opacity: .95; }
+
+/* ============================ 周柱状 ============================ */
+
+.week-bars {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--sp-2);
+  align-items: end;
+  height: 132px;
+  padding-top: var(--sp-2);
+}
+/* grid-template-rows: 1fr auto is load-bearing — the track row must be definite. With two auto
+   rows the track row is sized by its own content, and `.bar-fill { height: N% }` against an
+   indefinite parent resolves to 0, so `.bar-track { height: 100% }` collapses to 0px and every
+   week bar silently disappears (measured: track h=0px, fill colour correct, nothing painted). */
+.bar-col { display: grid; grid-template-rows: 1fr auto; gap: var(--sp-2); justify-items: center; height: 100%; cursor: default; }
+.bar-track {
+  position: relative;
+  width: 100%;
+  max-width: 34px;
+  height: 100%;
+  background: var(--fill-2);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+.bar-fill { width: 100%; border-radius: 8px; background: var(--accent); transition: height .5s cubic-bezier(.4,0,.2,1); }
+.bar-goal {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  height: 2px;
+  background: color-mix(in srgb, var(--text-3) 70%, transparent);
+  border-radius: 2px;
+}
+.bar-label { font-size: var(--t-micro); color: var(--text-3); }
+.bar-col:active .bar-track { transform: scale(0.95); }
+
+.hero-stat { display: grid; gap: var(--sp-1); }
+.hero-stat .big {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.hero-stat .unit { font-size: var(--t-cap); color: var(--text-3); margin-left: 5px; }
+.hero-stat .cap { font-size: var(--t-cap); color: var(--text-2); }
+.week-compare { font-size: var(--t-cap); color: var(--text-2); }
+
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-2);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+.mini-stat { display: grid; gap: 2px; }
+.mini-stat .v { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+.mini-stat .k { font-size: var(--t-micro); color: var(--text-3); }
+
+/* ============================ 月历 ============================ */
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.month-nav button {
+  appearance: none;
+  border: 0;
+  background: var(--fill-2);
+  color: var(--text);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-ctl);
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+}
+.month-nav button:active { transform: scale(.94); }
+.m-title { font-size: var(--t-h2); font-weight: 600; }
+
+.cal-head, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.cal-head { font-size: var(--t-micro); color: var(--text-3); text-align: center; margin-bottom: var(--sp-2); }
+.cal-cell {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: var(--fill-2);
+  display: grid;
+  place-items: center;
+  font-size: var(--t-micro);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  transition: transform .15s;
+}
+.cal-cell.blank { background: transparent; }
+.cal-cell:active:not(.blank) { transform: scale(0.9); }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  font-size: var(--t-micro);
+  color: var(--text-3);
+}
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+.chart-wrap { display: grid; gap: var(--sp-2); }
+.chart-title { font-size: var(--t-cap); color: var(--text-2); font-weight: 500; }
+.chart-svg { width: 100%; height: 148px; overflow: visible; }
+.chart-svg .line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.chart-svg .area { fill: url(#areaGrad); }
+.chart-svg .goal-line { stroke: var(--text-3); stroke-width: 1.5; stroke-dasharray: 5 5; }
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--t-micro);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================ 小贴士 ============================ */
+
+.tip {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.tip .cat-img { width: 64px; height: 64px; flex: none; }
+.tip-text { min-width: 0; }
+.tip-title {
+  font-size: var(--t-cap);
+  font-weight: 600;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.tip-body {
+  font-size: var(--t-cap);
+  color: var(--text-2);
+  line-height: 1.55;
+  text-wrap: pretty;              /* 避免最后一个字被挤到单独一行 */
+}
+
+/* ============================ 配置区 ============================ */
+
+.config-area .toggle {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.config-area label {
+  display: block;
+  font-size: var(--t-cap);
+  color: var(--text-2);
+  font-weight: 500;
+}
+.config-area input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px 13px;
+  border: 0;
+  border-radius: var(--r-inner);
+  background: var(--fill-2);
+  color: var(--text);
+  font-size: var(--t-body);
+}
+.config-area input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.config-hint { font-size: var(--t-micro); color: var(--text-3); line-height: 1.6; }
+.config-hint a { color: var(--accent); }
+
+.providers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); margin-top: var(--sp-2); }
+.providers button {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  background: var(--fill-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-inner);
+  padding: 10px 12px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background .18s, border-color .18s;
+}
+.providers button b { font-size: var(--t-cap); font-weight: 600; }
+.providers button span { font-size: var(--t-micro); color: var(--text-2); line-height: 1.35; }
+.providers button.on {
+  background: var(--card-solid);
+  border-color: var(--accent);
+  box-shadow: var(--elev-1);
+}
+.providers button.on b { color: var(--accent); }
+.providers button:active { transform: scale(.985); }
+
+.config-steps { margin: 0; padding-left: 18px; font-size: var(--t-cap); color: var(--text-2); line-height: 1.75; }
+.config-steps b { color: var(--text); }
+
+#advancedBox { margin-top: var(--sp-3); }
+#advancedBox summary {
+  font-size: var(--t-cap);
+  color: var(--accent);
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+  padding: 2px 0;
+}
+#advancedBox summary::-webkit-details-marker { display: none; }
+#advancedBox summary::before { content: "▸ "; font-size: 10px; }
+#advancedBox[open] summary::before { content: "▾ "; }
+.advanced-note { font-size: var(--t-micro); color: var(--text-3); margin-top: 6px; line-height: 1.55; }
+
+/* ============================ 底部面板 ============================ */
+
+.sheet-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s;
+  z-index: 40;
+}
+.sheet-mask.show { opacity: 1; pointer-events: auto; }
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 41;
+  background: var(--sheet);
+  border-radius: 22px 22px 0 0;
+  padding: var(--sp-3) var(--sp-5) calc(var(--sp-6) + env(safe-area-inset-bottom, 0px));
+  max-height: 90dvh;
+  overflow-y: auto;
+  transform: translateY(102%);
+  transition: transform .32s cubic-bezier(.32, .72, 0, 1);
+  box-shadow: var(--elev-3);
+}
+.sheet.show { transform: translateY(0); }
+.sheet > * + * { margin-top: var(--sp-3); }
+.sheet-handle {
+  width: 38px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--fill);
+  margin: 0 auto var(--sp-2);
+}
+.sheet-title { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+.sheet-sub { font-size: var(--t-cap); color: var(--text-2); line-height: 1.55; }
+.sheet-total { display: flex; align-items: baseline; gap: 6px; }
+.sheet-total .big { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; }
+.sheet-total .u { font-size: var(--t-cap); color: var(--text-3); }
+
+.badge {
+  font-size: var(--t-micro);
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--r-ctl);
+  background: var(--fill-2);
+  color: var(--text-2);
+  margin-left: auto;
+}
+.badge.good { background: var(--fill-2); background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); }
+.badge.over { background: var(--fill-2); background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); }
+
+.review-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-top: 1px solid var(--border);
+}
+.review-row:first-child { border-top: 0; }
+.review-row .nm { font-size: var(--t-body); font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.review-row .kc { font-size: var(--t-cap); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.review-row input {
+  width: 84px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--r-inner);
+  background: var(--fill-2);
+  color: var(--text);
+  font-size: var(--t-body);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.review-row input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.review-empty { color: var(--text-3); font-size: var(--t-cap); text-align: center; padding: var(--sp-5); }
+
+.ratio {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  font-size: var(--t-cap);
+  color: var(--text-2);
+}
+.ratio button {
+  appearance: none;
+  border: 0;
+  background: var(--fill-2);
+  color: var(--text);
+  border-radius: var(--r-ctl);
+  padding: 8px 14px;
+  font-size: var(--t-cap);
+  font-weight: 500;
+  cursor: pointer;
+}
+.ratio button:active { opacity: .68; }
+
+.card-preview {
+  border-radius: var(--r-inner);
+  overflow: hidden;
+  background: var(--fill-2);
+  line-height: 0;
+}
+.card-preview canvas { width: 100%; height: auto; display: block; }
+
+#preview {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--r-inner);
+}
+#preview:not([src]) { display: none; }
+
+/* ============================ 自适应 ============================ */
+/* 移动优先。手机一列 → 折叠屏展开/平板两列 → 桌面加左侧导航并进入三区。
+   不是把电脑版缩小，而是每一档都有自己的信息布局。 */
+
+/* 矮视口（阔折叠横屏、平板横屏）：压缩纵向节奏，避免一屏只放下一张卡 */
+@media (max-height: 800px) {
+  .card { padding: var(--sp-4); }
+  .ring { width: 112px; height: 112px; }
+  .week-bars { height: 108px; }
+}
+
+/* ── 中等宽度：折叠屏展开 / 平板 ── */
+@media (min-width: 600px) {
+  .app { padding: var(--sp-5) var(--sp-5) var(--sp-8); }
+  .brand-mark { width: 48px; height: 48px; }
+  .brand-mark .cat-img { width: 44px; height: 44px; }
+  .brand-title { font-size: 24px; }
+
+  .panel-today {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr);
+    gap: var(--sp-4);
+    align-items: start;
   }
-  .sheet-mask.show { opacity: 1; pointer-events: auto; }
+  .panel-today .summary     { grid-column: 1 / -1; }
+  .panel-today .records     { grid-column: 1; grid-row: 2 / span 2; }
+  .panel-today .actions     { grid-column: 2; grid-row: 2; }
+  .panel-today .tip-card    { grid-column: 2; grid-row: 3; }
+  .panel-today .config-area { grid-column: 1 / -1; margin-top: var(--sp-2); }
+  .panel-today > .card { margin-bottom: 0; }
+
+  /* 主卡在宽处横排：左边环与数据，右边猫（占约 28%） */
+  .summary-top { grid-template-columns: auto minmax(0, 1fr); }
+  /* 中窄屏：猫在卡片底部，用一条分隔线和上面的数据分开 */
+  .panel-today .summary .cat-line { border-top: 1px solid var(--border); }
+}
+
+/* 640 起，热量卡横排：左环右猫。697 的折叠屏展开正好落在这一档 */
+@media (min-width: 640px) {
+  .summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 28%);
+    grid-template-rows: auto auto auto auto;
+    column-gap: var(--sp-6);
+    align-items: center;
+  }
+  .summary-top   { grid-column: 1; grid-row: 1; }
+  .goal-edit     { grid-column: 1; grid-row: 2; }
+  .range-edit    { grid-column: 1; grid-row: 3; }
+  .field-note    { grid-column: 1; grid-row: 4; }
+  .panel-today .summary .cat-line { grid-column: 2; grid-row: 1 / -1; border-top: 0; padding-top: 0;
+                       flex-direction: column; gap: var(--sp-2);
+                       border-top: 0; }
+  .cat-line .cat-say::before { display: none; }
+  .cat .cat-img  { width: 156px; height: 156px; }
+  .cat-line .cat-say { text-align: center; }
+}
+
+/* ── 宽屏：左侧导航 + 内容区 ── */
+@media (min-width: 1024px) {
+  .app {
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr);
+    grid-template-areas:
+      "brand brand"
+      "nav   main";
+    column-gap: var(--sp-7);
+    padding: var(--sp-5) var(--sp-6) var(--sp-8);
+    align-items: start;
+  }
+  .brand { grid-area: brand; padding-bottom: var(--sp-5); border-bottom: 1px solid var(--border); }
+
+  /* 分段控件变成竖向导航。三个视图还是那三个，只是换个摆法 */
+  .views {
+    grid-area: nav;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    gap: 2px;
+    background: transparent;
+    padding: 0;
+    position: sticky;
+    top: var(--sp-5);
+    margin-bottom: 0;
+  }
+  .views button {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    text-align: left;
+    padding: 10px 13px;
+    border-radius: var(--r-inner);
+    font-size: var(--t-body);
+  }
+  .views button.active { background: var(--fill-2); box-shadow: none; font-weight: 600; }
+
+  main { grid-area: main; min-width: 0; }
+
+  .panel-today {
+    grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+    gap: var(--sp-5);
+  }
+  .card { padding: var(--sp-6); }
+}
+
+@media (min-width: 1280px) {
+  .panel-today { grid-template-columns: minmax(0, 1.75fr) minmax(300px, 1fr); }
+  /* 卡片更宽，猫也跟着长，否则它又被稀释成一个小图标 */
+  .cat .cat-img { width: 184px; height: 184px; }
+}
+
+/* 触屏优先：只在真有指针的设备上给 hover 效果 */
+@media (hover: hover) {
+  .btn-primary:hover { background: color-mix(in srgb, var(--accent) 92%, #fff); }
+  .btn-ghost:hover { background: var(--fill); }
+  .views button:hover:not(.active) { color: var(--text); }
+  .providers button:hover { border-color: var(--border); }
+}
+
+/* 宽屏上底部抽屉横跨 1440px 很奇怪，改成居中弹窗 */
+@media (min-width: 720px) {
   .sheet {
-    position: fixed; left: 0; right: 0; bottom: 0;
-    max-width: 480px; margin: 0 auto;
-    background: var(--sheet);
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
-    border-radius: 22px 22px 0 0;
-    padding: 8px 20px calc(env(safe-area-inset-bottom) + 24px);
-    z-index: 101;
-    transform: translateY(100%);
-    transition: transform .38s cubic-bezier(.32,.72,0,1);
-    box-shadow: var(--shadow-sheet);
-    max-height: 80vh; overflow-y: auto;
+    left: 50%; right: auto; bottom: var(--sp-5);
+    width: min(560px, calc(100% - 48px));
+    border-radius: var(--r-card);
+    transform: translate(-50%, calc(100% + 40px)) scale(.98);
   }
-  .sheet.show { transform: translateY(0); }
-  .sheet-handle {
-    width: 36px; height: 5px; background: var(--text-3);
-    border-radius: 3px; margin: 0 auto 16px;
-  }
-  .sheet-title {
-    font-size: 20px; font-weight: 700;
-    letter-spacing: -0.02em; margin-bottom: 4px;
-  }
-  .sheet-sub {
-    font-size: 13px; color: var(--text-2); margin-bottom: 16px;
-    font-variant-numeric: tabular-nums;
-  }
-  .sheet-total {
-    display: flex; align-items: baseline; gap: 8px; margin-bottom: 20px;
-  }
-  .sheet-total .big {
-    font-size: 40px; font-weight: 700;
-    letter-spacing: -0.04em; font-variant-numeric: tabular-nums;
-    line-height: 1;
-  }
-  .sheet-total .u { font-size: 15px; color: var(--text-2); }
-  .sheet-total .badge {
-    margin-left: auto; font-size: 12px; font-weight: 600;
-    padding: 5px 11px; border-radius: 20px;
-  }
-  .badge.good { background: rgba(48,209,88,0.18); color: var(--green); }
-  .badge.over { background: rgba(255,69,58,0.18); color: var(--red); }
-  .badge.low  { background: rgba(10,132,255,0.18); color: var(--accent); }
-  /* 分享卡片预览：canvas 逻辑尺寸 1080x1440，靠 CSS 缩到手机宽度 */
-  .card-preview { margin: 4px 0 18px; }
-  .card-preview canvas {
-    width: 100%; height: auto; display: block; border-radius: 18px;
-    box-shadow: 0 10px 34px rgba(0,0,0,0.55);
-  }
+  .sheet.show { transform: translate(-50%, 0) scale(1); }
+  .sheet-handle { display: none; }
+}
 
-  /* ---- 角色：就一口 ---- */
-  .h-row { display: flex; align-items: center; gap: 10px; }
-  .h-cat svg { display: block; }
-  .cat svg { display: block; }
-  /* 猫成了按钮：点了换表情。去掉按钮默认样式，别让它看起来像个控件 */
-  button.cat {
-    background: none; border: none; padding: 0; margin: 0;
-    cursor: pointer; -webkit-tap-highlight-color: transparent; font: inherit;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
   }
-  .cat img { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
-  .cat:active img { transform: scale(.9); }
-  /* 换表情时的小回弹，让切换读得出来而不是闪变 */
-  .cat img.pop { animation: catpop .3s cubic-bezier(.34,1.56,.64,1); }
-  @keyframes catpop { 0% { transform: scale(.72) } 100% { transform: scale(1) } }
-  /* 猫成了按钮：点了换表情。去掉按钮默认样式，别让它看起来像个控件 */
-  button.cat {
-    background: none; border: none; padding: 0; margin: 0;
-    cursor: pointer; -webkit-tap-highlight-color: transparent; font: inherit;
-  }
-  .cat img { transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
-  .cat:active img { transform: scale(.9); }
-  /* 换表情时的小回弹，让切换读得出来而不是闪变 */
-  .cat img.pop { animation: catpop .3s cubic-bezier(.34,1.56,.64,1); }
-  @keyframes catpop { 0% { transform: scale(.72) } 100% { transform: scale(1) } }
-  /* 原画是位图，靠 CSS 缩放；object-fit 保证不拉伸 */
-  .cat-img { display: block; object-fit: contain; }
-  .h-cat .cat-img { width: 52px; height: 52px; }
-  /* 猫是主角，不是角落里的小图标。112px 对应原画 224px，在 2 倍屏上正好清晰。
-     原来只有 58px —— 那是整个界面里最贵的一张图，却被画得最小。 */
-  .cat .cat-img { width: 112px; height: 112px; }
-  .cat-line {
-    display: flex; align-items: center; gap: 4px;
-    margin-top: 18px; padding-top: 16px;
-    border-top: 0.5px solid var(--border);
-  }
-  /* 猫远高于气泡，别让它被 flex 拉伸 */
-  .cat-line .cat, .cat-peek .cat { flex: none; }
-  .cat-say {
-    flex: 1; min-width: 0; font-size: 15px; line-height: 1.5;
-    letter-spacing: -0.01em; color: var(--text); position: relative;
-  }
-  .cat-say::before {
-    content: ''; position: absolute; left: -6px; top: 17px;
-    width: 12px; height: 12px; background: var(--fill-2);
-    transform: rotate(45deg); border-radius: 3px;
-  }
-  .cat-say span {
-    display: inline-block; background: var(--fill-2);
-    padding: 11px 14px; border-radius: 14px;
-  }
-  .cat-say .paw { opacity: .45; margin-left: 2px; }
-  /* 识别中：猫探头看盘子。放大，但比主猫小一档，主次分明 */
-  .cat-peek { display: flex; align-items: center; gap: 4px; margin-bottom: 14px; }
-  .cat-peek .cat-img { width: 64px; height: 64px; }
-  .cat-peek .cat-say { font-size: 13px; color: var(--text-2); }
-  .cat-peek .cat-say::before { top: 13px; width: 10px; height: 10px; }
-  .badge.none { background: var(--fill-2); color: var(--text-2); }
-
-  .config-area .toggle {
-    font-size: 13px; color: var(--accent); background: none;
-    border: none; cursor: pointer; padding: 0; font-family: inherit; font-weight: 500;
-  }
-  .config-area label {
-    display: block; margin-top: 14px;
-    font-size: 12px; color: var(--text-2); font-weight: 500;
-  }
-  .config-area input {
-    width: 100%; background: var(--fill-2); border: none;
-    border-radius: 11px; color: var(--text);
-    padding: 12px 14px; font-size: 14px; margin-top: 6px; font-family: inherit;
-  }
-  .config-area input:focus { outline: 1px solid var(--accent); }
-  .config-hint { font-size: 12px; color: var(--text-3); margin-top: 10px; line-height: 1.6; }
-  /* 服务商选择：两个都要能一眼看出取舍（快但收费 / 免费但慢） */
-  .providers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 16px; }
-  .providers button {
-    display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
-    background: var(--fill-2); border: 1px solid transparent; border-radius: 12px;
-    padding: 11px 12px; font-family: inherit; color: var(--text); cursor: pointer;
-    text-align: left; transition: background .2s, border-color .2s;
-  }
-  .providers button b { font-size: 14px; font-weight: 600; }
-  .providers button span { font-size: 11px; color: var(--text-2); line-height: 1.35; }
-  .providers button.on {
-    background: var(--card-solid);
-    border-color: var(--accent);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.10);
-  }
-  .providers button.on b { color: var(--accent); }
-  /* 配置面板里的三步说明：这是全流程唯一的门槛，写在用户卡住的地方 */
-  .config-steps {
-    margin: 0 0 16px; padding-left: 19px;
-    font-size: 13px; color: var(--text-2); line-height: 1.8;
-  }
-  .config-steps b { color: var(--text); font-weight: 600; }
-  /* 高级设置默认折叠：接口地址和模型名绝大多数人不用碰，
-     但模型名过期、或者要接一家没有预设的接口时，必须能改 */
-  #advancedBox { margin-top: 14px; }
-  #advancedBox summary {
-    font-size: 12px; color: var(--accent); font-weight: 500;
-    cursor: pointer; list-style: none; padding: 2px 0; outline: none;
-  }
-  #advancedBox summary::-webkit-details-marker { display: none; }
-  #advancedBox summary::before { content: '▸ '; font-size: 10px; }
-  #advancedBox[open] summary::before { content: '▾ '; }
-  #advancedBox input { font-size: 12px; }
-  .advanced-note { font-size: 11px; color: var(--text-3); margin-top: 8px; line-height: 1.55; }
-
-  [hidden] { display: none !important; }
+}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="h-row">
-    <h1>没吃多少</h1>
-    <span class="h-cat" id="hCat"></span>
-  </div>
-  <div class="h-sub" id="dateSub"></div>
-</header>
+<div class="app">
 
-<div class="segmented" id="segmented">
-  <button data-view="today" class="active">今日</button>
-  <button data-view="week">本周</button>
-  <button data-view="month">本月</button>
-</div>
+  <header class="brand">
+    <span class="brand-mark" id="hCat"></span>
+    <div class="brand-text">
+      <h1 class="brand-title">没吃多少</h1>
+      <div class="brand-sub" id="dateSub"></div>
+    </div>
+  </header>
 
-<main>
-  <!-- 今日 -->
-  <section data-panel="today">
-    <div class="card">
-      <div class="ring-wrap">
-        <div class="ring">
-          <svg width="118" height="118" viewBox="0 0 118 118">
-            <circle cx="59" cy="59" r="51" fill="none" stroke="var(--fill-2)" stroke-width="10"/>
-            <circle id="ringProgress" cx="59" cy="59" r="51" fill="none" stroke="var(--accent)"
-                    stroke-width="10" stroke-linecap="round"
-                    stroke-dasharray="320.44" stroke-dashoffset="320.44"
-                    style="transition: stroke-dashoffset .7s cubic-bezier(.4,0,.2,1), stroke .3s;"/>
-          </svg>
-          <div class="ring-text">
-            <span class="num" id="ringNum">0</span>
-            <span class="lbl">已摄入 kcal</span>
+  <!-- 三个视图就是原来那三个，没有增删；宽屏时从分段控件变成左侧导航 -->
+  <nav class="views" id="segmented" aria-label="视图">
+    <button data-view="today" class="active" type="button">今日</button>
+    <button data-view="week" type="button">本周</button>
+    <button data-view="month" type="button">本月</button>
+  </nav>
+
+  <main>
+
+    <!-- ==================== 今日 ==================== -->
+    <section class="panel-today" data-panel="today">
+
+      <div class="card summary">
+        <div class="summary-top">
+          <div class="ring">
+            <svg viewBox="0 0 118 118" aria-hidden="true">
+              <defs>
+                <!-- 顶光：同一条圆周上，上方亮、下方略暗，圆环才像个有厚度的实体 -->
+                <linearGradient id="ringGloss" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#fff" stop-opacity=".62"/>
+                  <stop offset="40%" stop-color="#fff" stop-opacity=".14"/>
+                  <stop offset="72%" stop-color="#fff" stop-opacity="0"/>
+                  <stop offset="100%" stop-color="#000" stop-opacity=".07"/>
+                </linearGradient>
+              </defs>
+              <circle class="ring-track" cx="59" cy="59" r="51" fill="none" stroke-width="11"/>
+              <circle class="ring-prog" id="ringProgress" cx="59" cy="59" r="51" fill="none"
+                      stroke-width="11" stroke-linecap="round"
+                      stroke-dasharray="320.44" stroke-dashoffset="320.44"/>
+              <circle class="ring-gloss" cx="59" cy="59" r="51" fill="none"
+                      stroke="url(#ringGloss)" stroke-width="11"/>
+            </svg>
+            <div class="ring-text">
+              <span class="num" id="ringNum">0</span>
+              <span class="lbl">已摄入 kcal</span>
+            </div>
+          </div>
+
+          <div class="stats">
+            <div class="stat-row">
+              <span class="k">目标</span>
+              <span><span class="v" id="goalDisplay">1800</span><span class="u">kcal</span></span>
+            </div>
+            <div class="stat-row">
+              <span class="k">已摄入</span>
+              <span><span class="v" id="intakeDisplay">0</span><span class="u">kcal</span></span>
+            </div>
+            <div class="stat-row">
+              <span class="k">剩余</span>
+              <span><span class="v" id="remainDisplay">1800</span><span class="u">kcal</span></span>
+            </div>
           </div>
         </div>
-        <div class="stats">
-          <div class="stat-row"><span class="k">目标</span><span class="v" id="goalDisplay">1800</span></div>
-          <div class="stat-row"><span class="k">已摄入</span><span class="v" id="intakeDisplay">0</span></div>
-          <div class="stat-row"><span class="k">剩余</span><span class="v" id="remainDisplay">1800</span></div>
+
+        <div class="goal-edit">
+          <span>每日目标</span>
+          <input type="number" id="goalInput" value="1800" min="500" max="5000" inputmode="numeric" aria-label="每日目标">
+          <span>kcal</span>
+          <span class="rec">推荐</span>
         </div>
-      </div>
-      <div class="goal-edit">
-        <span>每日目标</span>
-        <input type="number" id="goalInput" value="1800" min="500" max="5000" inputmode="numeric">
-        <span>kcal</span>
-        <span class="rec">推荐</span>
-      </div>
-      <div class="range-edit">
-        <span>达标范围</span>
-        <input type="number" id="lowInput" value="80" min="50" max="100" inputmode="numeric">
-        <span class="sep">%</span>
-        <span class="sep">—</span>
-        <input type="number" id="highInput" value="110" min="100" max="150" inputmode="numeric">
-        <span class="sep">%</span>
-      </div>
-      <div class="field-note">1800 是常见推荐值。点一下上面的数字，就能改成你自己的目标。</div>
-      <div class="cat-line">
-        <button class="cat" id="ringCat" type="button" aria-label="换一个表情"
-                title="点一下，换个表情"></button>
-        <span class="cat-say"><span id="catSay"></span></span>
-      </div>
-    </div>
 
-    <div class="card">
-      <img id="preview" alt="预览">
-      <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
-      <div class="cat-peek" id="catPeek" hidden>
-        <span class="cat" id="peekCat"></span>
-        <span class="cat-say"><span id="peekSay">看起来不太清白…</span></span>
-      </div>
-      <button class="btn btn-primary" id="photoBtn">📷 拍照识别</button>
-      <div class="status" id="status"></div>
-      <button class="btn btn-ghost" id="cardBtn" style="margin-top:12px;">🖼 生成今日卡片</button>
-    </div>
-
-    <div class="card">
-      <div class="section-title">今日记录</div>
-      <div id="mealList"></div>
-    </div>
-  </section>
-
-  <!-- 本周 -->
-  <section data-panel="week" hidden>
-    <div class="card">
-      <div class="hero-stat">
-        <div><span class="big" id="weekTotal">0</span><span class="unit">kcal</span></div>
-        <div class="cap" id="weekRange"></div>
-        <div class="week-compare" id="weekCompare"></div>
-      </div>
-      <div class="week-bars" id="weekBars"></div>
-      <div class="mini-stats">
-        <div class="mini-stat">
-          <div class="v" id="weekAvg">0</div>
-          <div class="k">日均 kcal</div>
+        <div class="range-edit">
+          <span>达标范围</span>
+          <input type="number" id="lowInput" value="80" min="50" max="100" inputmode="numeric" aria-label="达标下限">
+          <span class="sep">%</span>
+          <span class="sep">至</span>
+          <input type="number" id="highInput" value="110" min="100" max="150" inputmode="numeric" aria-label="达标上限">
+          <span class="sep">%</span>
         </div>
-        <div class="mini-stat">
-          <div class="v" id="weekGood">0</div>
-          <div class="k">达标天数</div>
-        </div>
-        <div class="mini-stat">
-          <div class="v" id="weekDiff">0</div>
-          <div class="k">vs 目标</div>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- 本月 -->
-  <section data-panel="month" hidden>
-    <div class="card">
-      <div class="month-nav">
-        <button id="prevMonth">‹</button>
-        <div class="m-title" id="monthTitle"></div>
-        <button id="nextMonth">›</button>
-      </div>
-      <div class="cal-head">
-        <span>一</span><span>二</span><span>三</span><span>四</span>
-        <span>五</span><span>六</span><span>日</span>
-      </div>
-      <div class="cal-grid" id="calGrid"></div>
-      <div class="legend">
-        <span><i style="background: rgba(10,132,255,0.35)"></i>偏低</span>
-        <span><i style="background: rgba(10,132,255,0.7)"></i>正常</span>
-        <span><i style="background: rgba(48,209,88,0.8)"></i>达标</span>
-        <span><i style="background: rgba(255,69,58,0.8)"></i>超标</span>
-      </div>
+        <div class="field-note">1800 是常见推荐值。点一下上面的数字，就能改成你自己的目标。</div>
 
-      <div class="chart-wrap">
-        <div class="chart-title">月度趋势</div>
-        <svg class="chart-svg" id="trendSvg" viewBox="0 0 320 140" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.28"/>
-              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <line class="goal-line" id="goalLine" x1="0" y1="0" x2="320" y2="0"/>
-          <path class="area" id="trendArea" d=""/>
-          <path class="line" id="trendLine" d=""/>
-          <g id="trendDots"></g>
-        </svg>
-        <div class="chart-axis">
-          <span>1</span><span id="axisMid">15</span><span id="axisEnd">30</span>
+        <!-- 猫与气泡是一个组件，气泡不抢猫的注意力 -->
+        <div class="cat-line">
+          <button class="cat" id="ringCat" type="button" aria-label="换一个表情" title="点一下，换个表情"></button>
+          <span class="cat-say"><span id="catSay"></span></span>
         </div>
       </div>
 
-      <div class="mini-stats" style="margin-top: 20px;">
-        <div class="mini-stat">
-          <div class="v" id="monthAvg">0</div>
-          <div class="k">日均 kcal</div>
+      <div class="card actions">
+        <img id="preview" alt="刚拍的照片预览">
+        <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
+        <div class="cat-peek" id="catPeek" hidden>
+          <span class="cat" id="peekCat"></span>
+          <span class="cat-say"><span id="peekSay">看起来不太清白</span></span>
         </div>
-        <div class="mini-stat">
-          <div class="v" id="monthGood">0</div>
-          <div class="k">达标天数</div>
+        <button class="btn btn-primary" id="photoBtn"><i data-ico="camera" data-size="19"></i>拍照识别</button>
+        <div class="status" id="status"></div>
+        <button class="btn btn-ghost" id="cardBtn"><i data-ico="sparkle" data-size="18"></i>生成今日卡片</button>
+      </div>
+
+      <div class="card records">
+        <div class="section-title">
+          <span>今日记录</span>
+          <span class="count" id="mealCount"></span>
         </div>
-        <div class="mini-stat">
-          <div class="v" id="monthRecorded">0</div>
-          <div class="k">记录天数</div>
+        <div id="mealList"></div>
+      </div>
+
+      <div class="card tip-card">
+        <div class="tip">
+          <span id="tipCat"></span>
+          <div class="tip-text">
+            <div class="tip-title"><i data-ico="heart" data-size="14"></i>今日小贴士</div>
+            <div class="tip-body" id="tipBody"></div>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- 配置 -->
-  <div class="card config-area">
-    <button class="toggle" id="configToggle">⚙️ 配置 AI 服务</button>
-    <div id="configPanel" hidden>
-      <label>用哪个 AI 识别</label>
-      <!-- 按钮由 renderConfigPanel() 从 PROVIDERS 生成：加一家只要改那一处 -->
-      <div class="providers" id="providerPick"></div>
-      <ol class="config-steps" id="configSteps"></ol>
-      <label><span id="keyLabel">API Key</span>
-        <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxx" autocomplete="off">
-      </label>
-      <details id="advancedBox">
-        <summary>高级设置 · 接口地址与模型</summary>
-        <label><span>接口地址</span>
-          <input type="text" id="endpointInput" placeholder="https://…/v1/chat/completions"
-                 autocomplete="off" spellcheck="false">
-        </label>
-        <label><span>模型名</span>
-          <input type="text" id="modelInput" placeholder="例如 glm-4v-flash"
-                 autocomplete="off" spellcheck="false">
-        </label>
-        <div class="advanced-note">
-          默认已经填好，通常不用动。换模型、或模型名过期时报错，改这里就行。
+      <div class="card config-area">
+        <button class="toggle" id="configToggle" type="button">
+          <i data-ico="gear-six" data-size="17"></i>配置 AI 服务
+        </button>
+        <div id="configPanel" hidden>
+          <label>用哪个 AI 识别</label>
+          <!-- 按钮由 renderConfigPanel() 从 PROVIDERS 生成：加一家只要改那一处 -->
+          <div class="providers" id="providerPick"></div>
+          <ol class="config-steps" id="configSteps"></ol>
+          <label><span id="keyLabel">API Key</span>
+            <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxx" autocomplete="off">
+          </label>
+          <details id="advancedBox">
+            <summary>高级设置：接口地址与模型</summary>
+            <label><span>接口地址</span>
+              <input type="text" id="endpointInput" placeholder="https://…/v1/chat/completions"
+                     autocomplete="off" spellcheck="false">
+            </label>
+            <label><span>模型名</span>
+              <input type="text" id="modelInput" placeholder="例如 glm-4v-flash"
+                     autocomplete="off" spellcheck="false">
+            </label>
+            <div class="advanced-note">
+              默认已经填好，通常不用动。换模型、或模型名过期时报错，改这里就行。
+            </div>
+          </details>
+          <div class="config-hint" id="configHint"></div>
+          <button class="btn btn-ghost" id="getApiBtn" style="margin-top:14px;"></button>
+          <button class="btn btn-primary" id="saveConfigBtn" style="margin-top:10px;">保存配置</button>
         </div>
-      </details>
-      <div class="config-hint" id="configHint"></div>
-      <button class="btn btn-ghost" id="getApiBtn" style="margin-top: 14px;"></button>
-      <button class="btn btn-primary" id="saveConfigBtn" style="margin-top: 10px; padding: 12px; font-size: 14px;">保存配置</button>
-    </div>
-  </div>
-</main>
+      </div>
 
+    </section>
+
+    <!-- ==================== 本周 ==================== -->
+    <section data-panel="week" hidden>
+      <div class="card">
+        <div class="hero-stat">
+          <div><span class="big" id="weekTotal">0</span><span class="unit">kcal</span></div>
+          <div class="cap" id="weekRange"></div>
+          <div class="week-compare" id="weekCompare"></div>
+        </div>
+        <div class="week-bars" id="weekBars"></div>
+        <div class="mini-stats">
+          <div class="mini-stat"><div class="v" id="weekAvg">0</div><div class="k">日均 kcal</div></div>
+          <div class="mini-stat"><div class="v" id="weekGood">0</div><div class="k">达标天数</div></div>
+          <div class="mini-stat"><div class="v" id="weekDiff">0</div><div class="k">对比目标</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 本月 ==================== -->
+    <section data-panel="month" hidden>
+      <div class="card">
+        <div class="month-nav">
+          <button id="prevMonth" type="button" aria-label="上个月">‹</button>
+          <div class="m-title" id="monthTitle"></div>
+          <button id="nextMonth" type="button" aria-label="下个月">›</button>
+        </div>
+        <div class="cal-head">
+          <span>一</span><span>二</span><span>三</span><span>四</span>
+          <span>五</span><span>六</span><span>日</span>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="legend">
+          <span><i style="background: rgba(0,122,255,.35); background: color-mix(in srgb, var(--accent) 35%, transparent)"></i>偏低</span>
+          <span><i style="background: rgba(0,122,255,.7); background: color-mix(in srgb, var(--accent) 70%, transparent)"></i>正常</span>
+          <span><i style="background: rgba(52,199,89,.8); background: color-mix(in srgb, var(--green) 80%, transparent)"></i>达标</span>
+          <span><i style="background: rgba(255,59,48,.8); background: color-mix(in srgb, var(--red) 80%, transparent)"></i>超标</span>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-title">月度趋势</div>
+          <svg class="chart-svg" id="trendSvg" viewBox="0 0 320 140" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.26"/>
+                <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <line class="goal-line" id="goalLine" x1="0" y1="0" x2="320" y2="0"/>
+            <path class="area" id="trendArea" d=""/>
+            <path class="line" id="trendLine" d=""/>
+            <g id="trendDots"></g>
+          </svg>
+          <div class="chart-axis">
+            <span>1</span><span id="axisMid">15</span><span id="axisEnd">30</span>
+          </div>
+        </div>
+
+        <div class="mini-stats">
+          <div class="mini-stat"><div class="v" id="monthAvg">0</div><div class="k">日均 kcal</div></div>
+          <div class="mini-stat"><div class="v" id="monthGood">0</div><div class="k">达标天数</div></div>
+          <div class="mini-stat"><div class="v" id="monthRecorded">0</div><div class="k">记录天数</div></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ==================== 底部面板 ==================== -->
 <div class="sheet-mask" id="sheetMask"></div>
 <div class="sheet" id="sheet">
   <div class="sheet-handle"></div>
@@ -781,8 +1268,8 @@
   <div class="sheet-title">今日卡片</div>
   <div class="sheet-sub">发给朋友看看，你今天真的没吃多少</div>
   <div class="card-preview"><canvas id="cardCanvas" width="1080" height="1440"></canvas></div>
-  <button class="btn btn-primary" id="cardSaveBtn">保存图片</button>
-  <button class="btn btn-ghost" id="cardShareBtn" style="margin-top:10px;">分享</button>
+  <button class="btn btn-primary" id="cardSaveBtn"><i data-ico="check-circle" data-size="18"></i>保存图片</button>
+  <button class="btn btn-ghost" id="cardShareBtn"><i data-ico="sparkle" data-size="17"></i>分享</button>
 </div>
 
 <div class="sheet-mask" id="reviewMask"></div>
@@ -793,15 +1280,81 @@
   <div id="reviewList"></div>
   <div class="ratio">
     <span>按吃掉的算：</span>
-    <button data-ratio="1">整份</button>
-    <button data-ratio="0.5">一半</button>
-    <button data-ratio="0.33">三分之一</button>
+    <button data-ratio="1" type="button">整份</button>
+    <button data-ratio="0.5" type="button">一半</button>
+    <button data-ratio="0.33" type="button">三分之一</button>
   </div>
-  <button class="btn btn-primary" id="reviewSaveBtn" style="margin-top:16px;">保存</button>
-  <button class="btn btn-ghost" id="reviewCancelBtn" style="margin-top:10px;padding:12px;font-size:14px;">取消</button>
+  <button class="btn btn-primary" id="reviewSaveBtn"><i data-ico="check-circle" data-size="18"></i>保存</button>
+  <button class="btn btn-ghost" id="reviewCancelBtn">取消</button>
 </div>
-
 <script>
+/* Phosphor Icons 2.1.1 (regular) -- MIT License
+ * https://github.com/phosphor-icons/core
+ *
+ * Vendored rather than imported so the app keeps its zero-dependency, single-file
+ * architecture, and so the icons work offline unlike a CDN icon font. Only the
+ * glyphs this UI uses are included. Paths are the library's own, unmodified except
+ * for dropping the hard-coded fill so they inherit colour.
+ */
+const ICON_VIEWBOX = '0 0 256 256';
+const ICONS = {
+  // 主视图
+  'house': '<path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z"/>',
+  // 拍照识别
+  'camera': '<path d="M208,56H180.28L166.65,35.56A8,8,0,0,0,160,32H96a8,8,0,0,0-6.65,3.56L75.71,56H48A24,24,0,0,0,24,80V192a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V80A24,24,0,0,0,208,56Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H80a8,8,0,0,0,6.66-3.56L100.28,48h55.43l13.63,20.44A8,8,0,0,0,176,72h32a8,8,0,0,1,8,8ZM128,88a44,44,0,1,0,44,44A44.05,44.05,0,0,0,128,88Zm0,72a28,28,0,1,1,28-28A28,28,0,0,1,128,160Z"/>',
+  // 配置入口
+  'gear-six': '<path d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm109.94-52.79a8,8,0,0,0-3.89-5.4l-29.83-17-.12-33.62a8,8,0,0,0-2.83-6.08,111.91,111.91,0,0,0-36.72-20.67,8,8,0,0,0-6.46.59L128,41.85,97.88,25a8,8,0,0,0-6.47-.6A112.1,112.1,0,0,0,54.73,45.15a8,8,0,0,0-2.83,6.07l-.15,33.65-29.83,17a8,8,0,0,0-3.89,5.4,106.47,106.47,0,0,0,0,41.56,8,8,0,0,0,3.89,5.4l29.83,17,.12,33.62a8,8,0,0,0,2.83,6.08,111.91,111.91,0,0,0,36.72,20.67,8,8,0,0,0,6.46-.59L128,214.15,158.12,231a7.91,7.91,0,0,0,3.9,1,8.09,8.09,0,0,0,2.57-.42,112.1,112.1,0,0,0,36.68-20.73,8,8,0,0,0,2.83-6.07l.15-33.65,29.83-17a8,8,0,0,0,3.89-5.4A106.47,106.47,0,0,0,237.94,107.21Zm-15,34.91-28.57,16.25a8,8,0,0,0-3,3c-.58,1-1.19,2.06-1.81,3.06a7.94,7.94,0,0,0-1.22,4.21l-.15,32.25a95.89,95.89,0,0,1-25.37,14.3L134,199.13a8,8,0,0,0-3.91-1h-.19c-1.21,0-2.43,0-3.64,0a8.08,8.08,0,0,0-4.1,1l-28.84,16.1A96,96,0,0,1,67.88,201l-.11-32.2a8,8,0,0,0-1.22-4.22c-.62-1-1.23-2-1.8-3.06a8.09,8.09,0,0,0-3-3.06l-28.6-16.29a90.49,90.49,0,0,1,0-28.26L61.67,97.63a8,8,0,0,0,3-3c.58-1,1.19-2.06,1.81-3.06a7.94,7.94,0,0,0,1.22-4.21l.15-32.25a95.89,95.89,0,0,1,25.37-14.3L122,56.87a8,8,0,0,0,4.1,1c1.21,0,2.43,0,3.64,0a8.08,8.08,0,0,0,4.1-1l28.84-16.1A96,96,0,0,1,188.12,55l.11,32.2a8,8,0,0,0,1.22,4.22c.62,1,1.23,2,1.8,3.06a8.09,8.09,0,0,0,3,3.06l28.6,16.29A90.49,90.49,0,0,1,222.9,142.12Z"/>',
+  // 统计视图
+  'chart-bar': '<path d="M224,200h-8V40a8,8,0,0,0-8-8H152a8,8,0,0,0-8,8V80H96a8,8,0,0,0-8,8v40H48a8,8,0,0,0-8,8v64H32a8,8,0,0,0,0,16H224a8,8,0,0,0,0-16ZM160,48h40V200H160ZM104,96h40V200H104ZM56,144H88v56H56Z"/>',
+  // 日期
+  'calendar-blank': '<path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"/>',
+  // 目标
+  'target': '<path d="M221.87,83.16A104.1,104.1,0,1,1,195.67,49l22.67-22.68a8,8,0,0,1,11.32,11.32l-96,96a8,8,0,0,1-11.32-11.32l27.72-27.72a40,40,0,1,0,17.87,31.09,8,8,0,1,1,16-.9,56,56,0,1,1-22.38-41.65L184.3,60.39a87.88,87.88,0,1,0,23.13,29.67,8,8,0,0,1,14.44-6.9Z"/>',
+  // 已摄入热量
+  'flame': '<path d="M173.79,51.48a221.25,221.25,0,0,0-41.67-34.34,8,8,0,0,0-8.24,0A221.25,221.25,0,0,0,82.21,51.48C54.59,80.48,40,112.47,40,144a88,88,0,0,0,176,0C216,112.47,201.41,80.48,173.79,51.48ZM96,184c0-27.67,22.53-47.28,32-54.3,9.48,7,32,26.63,32,54.3a32,32,0,0,1-64,0Zm77.27,15.93A47.8,47.8,0,0,0,176,184c0-44-42.09-69.79-43.88-70.86a8,8,0,0,0-8.24,0C122.09,114.21,80,140,80,184a47.8,47.8,0,0,0,2.73,15.93A71.88,71.88,0,0,1,56,144c0-34.41,20.4-63.15,37.52-81.19A216.21,216.21,0,0,1,128,33.54a215.77,215.77,0,0,1,34.48,29.27C193.49,95.5,200,125,200,144A71.88,71.88,0,0,1,173.27,199.93Z"/>',
+  // 食物库 / 菜品
+  'bowl-food': '<path d="M224,104h-8.37a88,88,0,0,0-175.26,0H32a8,8,0,0,0-8,8,104.35,104.35,0,0,0,56,92.28V208a16,16,0,0,0,16,16h64a16,16,0,0,0,16-16v-3.72A104.35,104.35,0,0,0,232,112,8,8,0,0,0,224,104Zm-24.46,0H148.12a71.84,71.84,0,0,1,41.27-29.57A71.45,71.45,0,0,1,199.54,104ZM173.48,56.23q2.75,2.25,5.27,4.75a87.92,87.92,0,0,0-49.15,43H100.1A72.26,72.26,0,0,1,168,56C169.83,56,171.66,56.09,173.48,56.23ZM128,40a71.87,71.87,0,0,1,19,2.57A88.36,88.36,0,0,0,83.33,104H56.46A72.08,72.08,0,0,1,128,40Zm36.66,152A8,8,0,0,0,160,199.3V208H96v-8.7A8,8,0,0,0,91.34,192a88.29,88.29,0,0,1-51-72H215.63A88.29,88.29,0,0,1,164.66,192Z"/>',
+  // 记录条目
+  'fork-knife': '<path d="M72,88V40a8,8,0,0,1,16,0V88a8,8,0,0,1-16,0ZM216,40V224a8,8,0,0,1-16,0V176H152a8,8,0,0,1-8-8,268.75,268.75,0,0,1,7.22-56.88c9.78-40.49,28.32-67.63,53.63-78.47A8,8,0,0,1,216,40ZM200,53.9c-32.17,24.57-38.47,84.42-39.7,106.1H200ZM119.89,38.69a8,8,0,1,0-15.78,2.63L112,88.63a32,32,0,0,1-64,0l7.88-47.31a8,8,0,1,0-15.78-2.63l-8,48A8.17,8.17,0,0,0,32,88a48.07,48.07,0,0,0,40,47.32V224a8,8,0,0,0,16,0V135.32A48.07,48.07,0,0,0,128,88a8.17,8.17,0,0,0-.11-1.31Z"/>',
+  // 品牌与空状态
+  'paw-print': '<path d="M212,80a28,28,0,1,0,28,28A28,28,0,0,0,212,80Zm0,40a12,12,0,1,1,12-12A12,12,0,0,1,212,120ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM44,120a12,12,0,1,1,12-12A12,12,0,0,1,44,120ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm0-40A12,12,0,1,1,80,60,12,12,0,0,1,92,48Zm72,40a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm0-40a12,12,0,1,1-12,12A12,12,0,0,1,164,48Zm23.12,100.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72ZM168,208a24,24,0,0,1-9.45-1.93,80.14,80.14,0,0,0-61.19,0,24,24,0,0,1-20.71-43.26,51.22,51.22,0,0,0,24.46-30.67,28,28,0,0,1,53.78,0,51.27,51.27,0,0,0,24.53,30.71A24,24,0,0,1,168,208Z"/>',
+  // 鼓励文案
+  'heart': '<path d="M178,40c-20.65,0-38.73,8.88-50,23.89C116.73,48.88,98.65,40,78,40a62.07,62.07,0,0,0-62,62c0,70,103.79,126.66,108.21,129a8,8,0,0,0,7.58,0C136.21,228.66,240,172,240,102A62.07,62.07,0,0,0,178,40ZM128,214.8C109.74,204.16,32,155.69,32,102A46.06,46.06,0,0,1,78,56c19.45,0,35.78,10.36,42.6,27a8,8,0,0,0,14.8,0c6.82-16.67,23.15-27,42.6-27a46.06,46.06,0,0,1,46,46C224,155.61,146.24,204.15,128,214.8Z"/>',
+  // 达标
+  'check-circle': '<path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/>',
+  // 超标 / 出错
+  'warning-circle': '<path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"/>',
+  // 列表进入箭头
+  'caret-right': '<path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"/>',
+  // 展开
+  'caret-down': '<path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/>',
+  // 删除 / 关闭
+  'x': '<path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/>',
+  // 新增
+  'plus': '<path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/>',
+  // 搜索
+  'magnifying-glass': '<path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/>',
+  // 提醒
+  'bell': '<path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"/>',
+  // 账户
+  'user': '<path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/>',
+  // 时间
+  'clock': '<path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z"/>',
+  // 推荐 / 亮点
+  'sparkle': '<path d="M197.58,129.06,146,110l-19-51.62a15.92,15.92,0,0,0-29.88,0L78,110l-51.62,19a15.92,15.92,0,0,0,0,29.88L78,178l19,51.62a15.92,15.92,0,0,0,29.88,0L146,178l51.62-19a15.92,15.92,0,0,0,0-29.88ZM137,164.22a8,8,0,0,0-4.74,4.74L112,223.85,91.78,169A8,8,0,0,0,87,164.22L32.15,144,87,123.78A8,8,0,0,0,91.78,119L112,64.15,132.22,119a8,8,0,0,0,4.74,4.74L191.85,144ZM144,40a8,8,0,0,1,8-8h16V16a8,8,0,0,1,16,0V32h16a8,8,0,0,1,0,16H184V64a8,8,0,0,1-16,0V48H152A8,8,0,0,1,144,40ZM248,88a8,8,0,0,1-8,8h-8v8a8,8,0,0,1-16,0V96h-8a8,8,0,0,1,0-16h8V72a8,8,0,0,1,16,0v8h8A8,8,0,0,1,248,88Z"/>',
+  // 重试
+  'arrow-clockwise': '<path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z"/>',
+  // 清空
+  'trash': '<path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"/>',
+};
+
+function icon(name, size = 20, cls = '') {
+  const body = ICONS[name];
+  if (!body) return '';
+  return `<svg class="ico ${cls}" viewBox="${ICON_VIEWBOX}" width="${size}" height="${size}"`
+       + ` fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"`
+       + ` stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+}
 /* ==================== 食物库 ==================== */
 // 数值为「每 100g 热量（kcal）」，是常见做法的粗略值。减肥场景看趋势即可，不追求实验室精度。
 const FOOD_DB = {
@@ -1102,7 +1655,8 @@ const el = {
   goalDisplay: $('goalDisplay'), intakeDisplay: $('intakeDisplay'), remainDisplay: $('remainDisplay'),
   goalInput: $('goalInput'), lowInput: $('lowInput'), highInput: $('highInput'),
   fileInput: $('fileInput'), photoBtn: $('photoBtn'), preview: $('preview'), status: $('status'),
-  mealList: $('mealList'),
+  mealList: $('mealList'), mealCount: $('mealCount'),
+  tipBody: $('tipBody'), tipCat: $('tipCat'),
   weekTotal: $('weekTotal'), weekRange: $('weekRange'), weekBars: $('weekBars'),
   weekCompare: $('weekCompare'),
   weekAvg: $('weekAvg'), weekGood: $('weekGood'), weekDiff: $('weekDiff'),
@@ -1199,7 +1753,11 @@ function renderToday() {
 
   el.ringProgress.style.strokeDashoffset = CIRC * (1 - pct);
   // 和分享卡片用同一条六色梯度：蓝 → 青 → 绿 → 黄 → 橙 → 红
-  el.ringProgress.style.stroke = cardStateFor(intake, goal, range, todayKey()).ringColor;
+  const ringColor = cardStateFor(intake, goal, range, todayKey()).ringColor;
+  el.ringProgress.style.stroke = ringColor;
+  // 同一个颜色也交给 CSS：SVG 的 stroke 是 JS 写进去的，CSS 读不到，
+  // 而圆环的柔光需要它
+  el.ringProgress.style.setProperty('--ring', ringColor);
   el.ringNum.textContent = Math.round(intake);
 
   el.goalDisplay.textContent = goal;
@@ -1208,14 +1766,16 @@ function renderToday() {
   el.remainDisplay.className = 'v' + (remain < 0 ? ' over' : '');
 
   if (records.length === 0) {
-    el.mealList.innerHTML = '<div class="empty">还没有记录，拍一张试试</div>';
+    // 空状态是设计的一部分，不是兜底文案：放一只在睡觉的猫，它承认你今天还没吃
+    el.mealList.innerHTML = '<div class="empty">' + catImg('sleep', 84)
+      + '<div>还没有记录，拍一张试试</div></div>';
   } else {
     el.mealList.innerHTML = records
       .map((r, i) => `
         <div class="meal-item">
           <span class="name">${escapeHtml(dishLabel(r))}<span class="time">${fmtTime(r.time)}</span></span>
-          <span class="kcal">${Math.round(r.kcal)}</span>
-          <button class="del" data-idx="${i}" aria-label="删除">×</button>
+          <span class="kcal">${Math.round(r.kcal)}<span class="unit">kcal</span></span>
+          <button class="del" data-idx="${i}" aria-label="删除第 ${i + 1} 条">${icon('x', 17)}</button>
         </div>`)
       .join('');
     el.mealList.querySelectorAll('.del').forEach(btn => {
@@ -1226,6 +1786,9 @@ function renderToday() {
       });
     });
   }
+
+  // 标题自己说明有多少内容，就不用再占一行统计
+  el.mealCount.textContent = records.length ? '共 ' + records.length + ' 餐' : '';
 
   renderCat();
 }
@@ -1933,6 +2496,10 @@ const CAT_ART = {
 
 const CAT_EXPRS = ['sleep', 'smug', 'eat', 'watermelon', 'hungry', 'sweat', 'celebrate', 'shock', 'overwhelmed', 'peek', 'love', 'cry', 'sign', 'bored', 'down', 'hide', 'drink', 'refuse', 'hi', 'phone', 'cheer'];
 
+// 每张内联猫图的正方形边长（由 ui-lab 的编码器统一裁到这个尺寸）。
+// 记在这里是为了能被检查：显示尺寸必须是它的一半，retina 上才不虚。
+const CAT_ART_PX = 224;
+
 // 渲染成 <img>。缺图时退回得意脸：宁可少一个表情，也不要出现裂图。
 function catImg(expr, size = 96) {
   const src = CAT_ART[expr] || CAT_ART.smug;
@@ -2308,7 +2875,11 @@ function drawShareCard(canvas, d) {
   }
 
   // 角色：右上角蹲着，表情跟着当天状态走
-  const catImg = catImage(catExprFor(st.kind));
+  // 分享卡片优先用「举牌」那张：它是品牌动作，也是别人最可能转发的一张。
+  // 只有当这一档的表情池里本来就有它时才这么用，所以不会出现「超标了还在庆祝」。
+  const cardPool = catPoolFor(st.kind);
+  const cardExpr = cardPool.includes('sign') ? 'sign' : catExprFor(st.kind);
+  const catImg = catImage(cardExpr);
   if (catImg.complete && catImg.naturalWidth) {
     // 新原画是正方形画布（224×224，猫居中），所以这里必须 1:1。
     // 旧版本写死的是上一代原画的 124/120，留着会把猫压扁 3%。
@@ -2391,6 +2962,37 @@ el.cardMask.addEventListener('click', closeCardSheet);
 el.cardSaveBtn.addEventListener('click', saveCardImage);
 el.cardShareBtn.addEventListener('click', shareCardImage);
 
+
+
+/* ==================== 新增：图标与贴士 ==================== */
+// 把 <i data-ico="camera"> 换成真正的 Phosphor 图形。用 data 属性而不是直接内联，
+// 是为了让标记保持可读，图标定义也只有一处。
+function paintIcons(root = document) {
+  root.querySelectorAll('[data-ico]').forEach(node => {
+    const name = node.dataset.ico;
+    if (node.dataset.painted === name) return;
+    node.innerHTML = icon(name, Number(node.dataset.size) || 18);
+    node.dataset.painted = name;
+  });
+}
+
+// 今日小贴士。内容很轻，按日期轮换，和猫那句话分工不同：
+// 猫负责情绪，贴士负责给一个能做到的小动作。
+const TIPS = [
+  '记录本身比算得准更重要。估错了也没关系，坚持记下来才看得出规律。',
+  '一顿吃多了不用补，下一顿正常吃就好。身体看的是这一周，不是这一餐。',
+  '先喝汤、先吃菜，主食放最后，同样一顿会觉得更饱。',
+  '零食不用戒，倒出来装一小碟再吃，比抱着袋子吃少很多。',
+  '晚上饿得睡不着，反而是白天吃太少。明天早饭多吃一点。',
+  '体重每天都会浮动一两斤，那是水分，不是你的努力白费了。',
+  '外食先夹一半出来放着，吃完再决定要不要动另一半。',
+];
+function renderTip() {
+  el.tipBody.textContent = TIPS[seededIndex(todayKey(), TIPS.length, 11)];
+  // 贴士卡的猫是"陪伴角色"，用偷看那张，比正脸更轻
+  el.tipCat.innerHTML = catImg('peek', 64);
+}
+
 /* ==================== 初始化 ==================== */
 (function init() {
   renderConfigPanel();
@@ -2400,10 +3002,14 @@ el.cardShareBtn.addEventListener('click', shareCardImage);
   const d = new Date();
   const wd = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
   el.dateSub.textContent = `${d.getMonth()+1}月${d.getDate()}日 · ${wd}`;
-  // 标题旁的猫：固定得意脸，代表"它觉得自己没吃多少"
-  el.hCat.innerHTML = catImg('shock', 52);
+  // 品牌标识：用户指定用这只震惊猫。这里用的是头部为主的裁切版（brand.png），
+  // 因为表情原图带着爪子，44px 下头会小一圈，读不清。
+  el.hCat.innerHTML = '<img class="cat-img" src="data:image/webp;base64,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"'
+    + ' width="44" height="44" alt="没吃多少" draggable="false">';
   renderToday();
   preloadCatImages();
+  paintIcons();
+  renderTip();
 
   // 系统切换深浅色时要重算颜色：色阶和墨色是 JS 算好写进内联样式的，
   // CSS 变量会跟着系统自动切，但这两处不会。
