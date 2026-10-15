@@ -31,13 +31,17 @@ The repository is `not-that-much` for the same reason.
 
 | View | What's in it |
 | --- | --- |
-| Today | Ring progress, photo recognition, today's log (portions editable and deletable), adjustable daily goal and target range, share-card export |
+| Today | Ring progress, photo recognition and manual entry, today's log (tap a row to change its name and calories, or delete it), adjustable daily goal and target range, share-card export |
 | Week | Weekly total, 7-day bar chart (tap a bar for that day), trend arrow vs. last week, daily average / days on target |
 | Month | Calendar heatmap (tap a day for details), monthly trend line (goal line, today highlighted), daily average / days on target / days logged |
 | Share card | One tap for a 1080×1440 portrait image with the day's items, the cat, and a self-deprecating line — ready to save or share |
 
-The UI follows Apple's "Liquid Glass" language: `backdrop-filter` frosted panels, large
-corner radii, segmented controls, automatic light and dark mode.
+No photo, packaged food, or a dish the model got wrong — type the name and calories straight
+into "manual entry". If it is in the food table the calories are worked out per 100g; if not,
+a rough number is fine.
+
+The UI follows iOS Settings: white cards with soft elevation, three corner-radius steps,
+segmented controls, automatic light and dark mode.
 
 ## The character: 就一口
 
