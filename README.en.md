@@ -57,18 +57,18 @@ Her lifelong motto is printed on the wide version of the share card:
 
 **Palette**: grey (tabby), cream (face and paws), dark grey (outline), pink (ears and nose).
 
-The nine expressions map to the app's states:
+The nine states each get their own face (tap the cat to shuffle within the same tier):
 
 | State | Expression | She says |
 | --- | --- | --- |
 | Nothing logged yet | Asleep | Haven't touched a thing today |
 | Low intake (blue / cyan) | Smug | Plenty of room left～ |
-| On track (white) | Calm | All normal, keep it up |
+| On track (white) | Eating | All normal, keep it up |
 | Past halfway (orange) | Craving | Halfway… starting to feel tempted |
-| Nearing the goal (orange) | Nervous | Just one last push |
-| On target (green) | Shy | I really didn't eat much today |
-| Over (yellow / orange) | Upset | Don't blame the food, blame my mouth |
-| Hidden tier (red · 3000+) | Shocked | That number… I'd call the police |
+| Nearing the goal (orange) | Sweating | Just one last push |
+| On target (green) | Celebrating | Hit the target today |
+| Over (yellow / orange) | Shocked | Don't blame the food, blame my mouth |
+| Hidden tier (red · 3000+) | Overwhelmed | That number… I'd call the police |
 | Recognising | Peeking | This looks a little suspicious… |
 
 She appears in four places, each with a different job:
@@ -91,9 +91,11 @@ The same character is also a **24-sticker set** in [`stickers/`](stickers):
 - **Gallery**: https://iorlchotae.github.io/not-that-much/stickers/ (long-press to save on mobile)
 - **24** is a standard tier on the WeChat sticker platform (8 / 16 / 24 / 32 / 40):
   main 240×240, thumbnail 120×120, cover 240×240, chat icon 50×50, banner 750×400, all transparent
-- The 24 poses: shocked / smitten / calm / guilty / cool / bye / angry / craving / asleep /
-  surprised / puzzled / crying / eating / shy / hopeful / smug / tongue-out / nervous /
-  turned away / peeking / grumpy / dozing / stunned / hugging
+- The 24 poses: declaring / smug / cool / refusing / bye / hopeful / smitten / celebrating /
+  hiding / busy / crying foul / vowing / shocked / eating / craving / guilty / upset /
+  sweating / giving up / flat out / asleep / eating melon / peeking / toughing it out
+- The first 12 are the "tough talk" set and the last 12 the "comeuppance" set -- exactly
+  two notes' worth
 - Full list and submission order: [`stickers/文案对照表.md`](stickers/文案对照表.md)
 
 ## Share card
